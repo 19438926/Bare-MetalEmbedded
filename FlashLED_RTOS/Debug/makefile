@@ -64,8 +64,8 @@ all: main-build
 main-build: FlashLED_RTOS.elf secondary-outputs
 
 # Tool invocations
-FlashLED_RTOS.elf FlashLED_RTOS.map: $(OBJS) $(USER_OBJS) C:\Users\HP\STM32CubeIDE\workspace_1.12.1\FlashLED_RTOS\STM32F429ZITX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "FlashLED_RTOS.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\HP\STM32CubeIDE\workspace_1.12.1\FlashLED_RTOS\STM32F429ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="FlashLED_RTOS.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+FlashLED_RTOS.elf FlashLED_RTOS.map: $(OBJS) $(USER_OBJS) C:\Users\HP\Documents\GitHub\Mare-MetalEmbedded\FlashLED_RTOS\STM32F429ZITX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "FlashLED_RTOS.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\HP\Documents\GitHub\Mare-MetalEmbedded\FlashLED_RTOS\STM32F429ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="FlashLED_RTOS.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
