@@ -1,0 +1,10 @@
+18:32:59 **** Incremental Build of configuration Debug for project FlashLEB_HAL ****
+make -j16 all 
+arm-none-eabi-size   FlashLEB_HAL.elf 
+   text	   data	    bss	    dec	    hex	filename
+   5792	     20	   1572	   7384	   1cd8	FlashLEB_HAL.elf
+Finished building: default.size.stdout
+ 
+
+18:32:59 Build Finished. 0 errors, 0 warnings. (took 253ms)
+

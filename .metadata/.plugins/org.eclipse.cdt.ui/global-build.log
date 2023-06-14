@@ -1,0 +1,63 @@
+17:53:58 **** Incremental Build of configuration Debug for project FlashLED ****
+make -j16 all 
+arm-none-eabi-gcc "../Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DSTM32F429I_DISC1 -DSTM32 -DSTM32F429ZITx -DSTM32F4 -c -I../Inc -I../inc/STM32F4Headers -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Src/main.d" -MT"Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Src/main.o"
+../Src/main.c:4: warning: "PERIPH_BASE" redefined
+    4 | #define PERIPH_BASE            (0x40000000UL)
+      | 
+In file included from ../Src/main.c:2:
+../inc/STM32F4Headers/stm32f429xx.h:1029: note: this is the location of the previous definition
+ 1029 | #define PERIPH_BASE           0x40000000UL /*!< Peripheral base address in the alias region                                */
+      | 
+../Src/main.c:9: warning: "GPIOG_BASE" redefined
+    9 | #define GPIOG_BASE            (PERIPH_BASE+GPIOG_OFFSET)
+      | 
+In file included from ../Src/main.c:2:
+../inc/STM32F4Headers/stm32f429xx.h:1118: note: this is the location of the previous definition
+ 1118 | #define GPIOG_BASE            (AHB1PERIPH_BASE + 0x1800UL)
+      | 
+../Src/main.c:12: warning: "RCC_BASE" redefined
+   12 | #define RCC_BASE                (PERIPH_BASE+RCC_OFFSET)
+      | 
+In file included from ../Src/main.c:2:
+../inc/STM32F4Headers/stm32f429xx.h:1124: note: this is the location of the previous definition
+ 1124 | #define RCC_BASE              (AHB1PERIPH_BASE + 0x3800UL)
+      | 
+arm-none-eabi-gcc -o "FlashLED.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\Users\HP\STM32CubeIDE\workspace_1.12.1\FlashLED\STM32F429ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="FlashLED.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: FlashLED.elf
+ 
+arm-none-eabi-size   FlashLED.elf 
+arm-none-eabi-objdump -h -S  FlashLED.elf  > "FlashLED.list"
+   text	   data	    bss	    dec	    hex	filename
+    740	      8	   1568	   2316	    90c	FlashLED.elf
+Finished building: default.size.stdout
+ 
+Finished building: FlashLED.list
+ 
+18:24:42 **** Incremental Build of configuration Debug for project FlashLED ****
+make -j16 all 
+arm-none-eabi-gcc "../Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DSTM32F429I_DISC1 -DSTM32 -DSTM32F429ZITx -DSTM32F4 -c -I../Inc -I../inc/STM32F4Headers -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Src/main.d" -MT"Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Src/main.o"
+arm-none-eabi-gcc -o "FlashLED.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\Users\HP\STM32CubeIDE\workspace_1.12.1\FlashLED\STM32F429ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="FlashLED.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: FlashLED.elf
+ 
+arm-none-eabi-size   FlashLED.elf 
+arm-none-eabi-objdump -h -S  FlashLED.elf  > "FlashLED.list"
+   text	   data	    bss	    dec	    hex	filename
+    744	      8	   1568	   2320	    910	FlashLED.elf
+Finished building: default.size.stdout
+ 
+Finished building: FlashLED.list
+ 
+18:30:32 **** Incremental Build of configuration Debug for project FlashLED ****
+make -j16 all 
+arm-none-eabi-size   FlashLED.elf 
+   text	   data	    bss	    dec	    hex	filename
+    744	      8	   1568	   2320	    910	FlashLED.elf
+Finished building: default.size.stdout
+ 
+18:32:59 **** Incremental Build of configuration Debug for project FlashLEB_HAL ****
+make -j16 all 
+arm-none-eabi-size   FlashLEB_HAL.elf 
+   text	   data	    bss	    dec	    hex	filename
+   5792	     20	   1572	   7384	   1cd8	FlashLEB_HAL.elf
+Finished building: default.size.stdout
+ 

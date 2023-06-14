@@ -1,0 +1,41 @@
+
+
+#define PERIPH_BASE            (0x40000000UL)
+#define AHB1PERIPH_OFFSET       (0x00020000UL)
+#define AHB1RERIPH              (PERIPH_BASE+AHBIPERIPH_OFFSET)
+
+#define GPIOG_OFFSET          (0x00021800UL)
+#define GPIOG_BASE            (PERIPH_BASE+GPIO_OFFSET)
+
+#define RCC_OFFSET              (0x00023800UL)
+#define RCC_BASE                (PERIPH_BASE+RCC_OFFSET)
+
+#define AHB1EN_R_OFFSET              (0x00000030UL)
+#define AHB1EN                      (*(volatile unsigned int *)(RCC_BASE +AHB1EN_OFFSET))
+
+#define MODE_R_OFFSET              (0x00000000UL)
+#define GPIOG_MODE_R                (*(volatile unsigned int *)(MODE_R_OFFSET+GPIOG_BASE))
+
+#define OD_R_OFFSET                 (0x00000014UL)
+#define GPIOG_OD_R                   (*(volatile unsigned int *)(OD_R_OFFSET+GPIOG_BASE))
+
+#define GPIOG_EN                    (0x00000040UL)
+
+#define PIN13                      (1<<13)
+#define LED_PIN                     PIN13
+
+
+
+int main(void)
+{
+
+	AHB1EN_R |= GPIOG_EN;
+
+	GPIOG_MODE_R |= (1,26);
+	GPIOG_MODE_R &= ~(1<<27);
+
+    /* Loop forever */
+	for(;;){
+		GPIOG_OD_R ^=LED_PIN;
+	}
+}
