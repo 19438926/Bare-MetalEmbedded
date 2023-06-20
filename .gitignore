@@ -1,7 +1,7 @@
 Release
 Debug
 .metadata/.log
-.metadata/.log
+.metadata/.plugins
 *.log
 *.pdom
 .metadata/.log
@@ -22,3 +22,13 @@ FlashLED/Debug/FlashLED.elf
 *.list
 *.pdom
 .metadata/.log
+.metadata/.log
+*.xml
+.metadata/.plugins/org.eclipse.core.resources/.history/10/607d36145b0f001e14ccb0f8cf76b747
+.metadata/.plugins/org.eclipse.core.resources/.history/28/d0bae2ea4d0f001e14ccb0f8cf76b747
+.metadata/.log
+.metadata/.plugins/org.eclipse.core.resources/.history/35/506f38a24d0f001e14ccb0f8cf76b747
+*.s
+*.c
+.metadata/.plugins/org.eclipse.core.resources/.history/4c/9059218f4d0f001e14ccb0f8cf76b747
+.metadata/.plugins/org.eclipse.core.resources/.history/60/30ab4dee4d0f001e14ccb0f8cf76b747

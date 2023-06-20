@@ -1701,3 +1701,24 @@ java.io.FileNotFoundException: C:\Users\HP\Documents\GitHub\Mare-MetalEmbedded\.
 	at org.eclipse.core.internal.resources.SaveManager.save(SaveManager.java:1143)
 	at org.eclipse.core.internal.resources.DelayedSnapshotJob.run(DelayedSnapshotJob.java:55)
 	at org.eclipse.core.internal.jobs.Worker.run(Worker.java:63)
+!SESSION 2023-06-20 10:31:09.403 -----------------------------------------------
+eclipse.buildId=Version 1.12.1
+java.version=11.0.17
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=en_GB
+Command-line arguments:  -os win32 -ws win32 -arch x86_64
+
+!ENTRY org.eclipse.core.resources 2 10035 2023-06-20 10:31:17.075
+!MESSAGE The workspace exited with unsaved changes in the previous session; refreshing workspace to recover changes.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 4 4 2023-06-20 10:31:28.102
+!MESSAGE CubeMX plugin appears to be active, Log4j initialization might be too late.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2023-06-20 10:31:28.110
+!MESSAGE Log4j2 initialized with config file C:\Users\HP\Documents\GitHub\Mare-MetalEmbedded\.metadata\.log4j2.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2023-06-20 10:31:37.157
+!MESSAGE Started RMI Server, listening on port 41337
+
+!ENTRY org.eclipse.cdt.core 1 0 2023-06-20 11:31:02.917
+!MESSAGE Indexed 'WaveformGenerator' (3 sources, 31 headers) in 1.23 sec: 3,737 declarations; 5,369 references; 26 unresolved inclusions; 253 syntax errors; 3,734 unresolved names (29%)

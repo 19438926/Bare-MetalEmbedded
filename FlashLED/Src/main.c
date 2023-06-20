@@ -54,15 +54,13 @@ void Initialise_External_Clock (void);
  * @param None
  * @retval None
  */
-int main(void)
-{
+int main(void){
 	//Initialise to use external clock , enable relevant gpio and peripheral etc.
 	Micro_Initialisation();
 
     /******************/
     /* Loop forever */
-	while(1)
-	{
+	while(1){
 	GPIOG->ODR ^=LED_PIN;//inverts the specific bit
     }
 }
@@ -73,8 +71,7 @@ int main(void)
  * @param None
  * @retval None
  */
-void Micro_Initialisation(void)
-{
+void Micro_Initialisation(void){
 	//configure chip to use external clock source.
 	Initialise_External_Clock();
 
@@ -88,14 +85,13 @@ void Micro_Initialisation(void)
  * @param None
  * @retval None
  */
-void Initialise_External_Clock (void)
-{
+void Initialise_External_Clock (void){
 
 
     //Enable HSE and wait for the HSE to become ready
 	RCC->CR |= RCC_CR_HSEON;
-	while (!(RCC->CR & RCC_CR_HSERDY))
-		;
+	while (!(RCC->CR & RCC_CR_HSERDY));
+
 
 	//Set the power enable clock and voltage regulator
 	RCC->APB1ENR |= RCC_APB1ENR_PWREN;
@@ -119,13 +115,13 @@ void Initialise_External_Clock (void)
 
     //Enable the PLL and wait ready
 	RCC->CR |= RCC_CR_PLLON;
-	while (!(RCC->CR & RCC_CR_PLLRDY))
-		;
+	while (!(RCC->CR & RCC_CR_PLLRDY));
+
 
     //Select the clock source and wait for it to be set
 	RCC->CFGR |= RCC_CFGR_SW_PLL;
-	while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL)
-		;
+	while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL);
+
 }
 
 /********************************************
@@ -139,14 +135,13 @@ void Initialise_External_Clock (void)
  * @param None
  * @retval None
  */
-void Initialise_GPIO (void )
-{
+void Initialise_GPIO (void){
     //Enable clock access to GPIOG
      RCC->AHB1ENR |= RCC_AHB1ENR_GPIOGEN;
      //Set PG13 as output
 	 GPIOG->MODER |= (1 << 26);
 	 GPIOG->MODER &= ~(1 << 27);
-}
+  }
 
 /*****************/
 /* End of files */
