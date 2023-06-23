@@ -60,8 +60,8 @@ all: main-build
 main-build: FlashLEB_HAL.elf secondary-outputs
 
 # Tool invocations
-FlashLEB_HAL.elf FlashLEB_HAL.map: $(OBJS) $(USER_OBJS) C:\Users\HP\STM32CubeIDE\workspace_1.12.1\FlashLEB_HAL\STM32F429ZITX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "FlashLEB_HAL.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\HP\STM32CubeIDE\workspace_1.12.1\FlashLEB_HAL\STM32F429ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="FlashLEB_HAL.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+FlashLEB_HAL.elf FlashLEB_HAL.map: $(OBJS) $(USER_OBJS) C:\Users\HP\Documents\GitHub\Mare-MetalEmbedded\FlashLEB_HAL\STM32F429ZITX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "FlashLEB_HAL.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\HP\Documents\GitHub\Mare-MetalEmbedded\FlashLEB_HAL\STM32F429ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="FlashLEB_HAL.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

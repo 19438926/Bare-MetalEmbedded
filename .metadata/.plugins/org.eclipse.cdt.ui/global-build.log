@@ -1,21 +1,57 @@
-13:52:34 **** Incremental Build of configuration Debug for project FlashLED ****
+14:40:54 **** Incremental Build of configuration Debug for project WaveformGenerator ****
 make -j16 all 
 arm-none-eabi-gcc "../Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DSTM32F429I_DISC1 -DSTM32 -DSTM32F429ZITx -DSTM32F4 -c -I../Inc -I../inc/STM32F4Headers -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Src/main.d" -MT"Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Src/main.o"
-arm-none-eabi-gcc -o "FlashLED.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\Users\HP\Documents\GitHub\Mare-MetalEmbedded\FlashLED\STM32F429ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="FlashLED.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
-Finished building target: FlashLED.elf
+arm-none-eabi-gcc -o "WaveformGenerator.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\Users\HP\Documents\GitHub\Mare-MetalEmbedded\WaveformGenerator\STM32F429ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="WaveformGenerator.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: WaveformGenerator.elf
  
-arm-none-eabi-size   FlashLED.elf 
-arm-none-eabi-objdump -h -S  FlashLED.elf  > "FlashLED.list"
+arm-none-eabi-size   WaveformGenerator.elf 
+arm-none-eabi-objdump -h -S  WaveformGenerator.elf  > "WaveformGenerator.list"
    text	   data	    bss	    dec	    hex	filename
-    968	      8	   1568	   2544	    9f0	FlashLED.elf
+   2384	      8	   1600	   3992	    f98	WaveformGenerator.elf
 Finished building: default.size.stdout
  
-Finished building: FlashLED.list
+Finished building: WaveformGenerator.list
  
-13:52:52 **** Incremental Build of configuration Debug for project FlashLED ****
+14:41:28 **** Incremental Build of configuration Debug for project WaveformGenerator ****
 make -j16 all 
-arm-none-eabi-size   FlashLED.elf 
+arm-none-eabi-gcc "../Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DSTM32F429I_DISC1 -DSTM32 -DSTM32F429ZITx -DSTM32F4 -c -I../Inc -I../inc/STM32F4Headers -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Src/main.d" -MT"Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Src/main.o"
+arm-none-eabi-gcc -o "WaveformGenerator.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\Users\HP\Documents\GitHub\Mare-MetalEmbedded\WaveformGenerator\STM32F429ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="WaveformGenerator.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: WaveformGenerator.elf
+ 
+arm-none-eabi-size   WaveformGenerator.elf 
+arm-none-eabi-objdump -h -S  WaveformGenerator.elf  > "WaveformGenerator.list"
    text	   data	    bss	    dec	    hex	filename
-    968	      8	   1568	   2544	    9f0	FlashLED.elf
+   2384	      8	   1600	   3992	    f98	WaveformGenerator.elf
 Finished building: default.size.stdout
+ 
+Finished building: WaveformGenerator.list
+ 
+15:01:24 **** Incremental Build of configuration Debug for project WaveformGenerator ****
+make -j16 all 
+arm-none-eabi-gcc "../Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DSTM32F429I_DISC1 -DSTM32 -DSTM32F429ZITx -DSTM32F4 -c -I../Inc -I../inc/STM32F4Headers -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Src/main.d" -MT"Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Src/main.o"
+arm-none-eabi-gcc -o "WaveformGenerator.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\Users\HP\Documents\GitHub\Mare-MetalEmbedded\WaveformGenerator\STM32F429ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="WaveformGenerator.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: WaveformGenerator.elf
+ 
+arm-none-eabi-size   WaveformGenerator.elf 
+arm-none-eabi-objdump -h -S  WaveformGenerator.elf  > "WaveformGenerator.list"
+   text	   data	    bss	    dec	    hex	filename
+   2336	      8	   1584	   3928	    f58	WaveformGenerator.elf
+Finished building: default.size.stdout
+ 
+Finished building: WaveformGenerator.list
+ 
+15:02:58 **** Incremental Build of configuration Debug for project WaveformGenerator ****
+make -j16 all 
+arm-none-eabi-gcc "../Src/SysTick.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DSTM32F429I_DISC1 -DSTM32 -DSTM32F429ZITx -DSTM32F4 -c -I../Inc -I../inc/STM32F4Headers -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Src/SysTick.d" -MT"Src/SysTick.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Src/SysTick.o"
+arm-none-eabi-gcc "../Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DSTM32F429I_DISC1 -DSTM32 -DSTM32F429ZITx -DSTM32F4 -c -I../Inc -I../inc/STM32F4Headers -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Src/main.d" -MT"Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Src/main.o"
+arm-none-eabi-gcc -o "WaveformGenerator.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\Users\HP\Documents\GitHub\Mare-MetalEmbedded\WaveformGenerator\STM32F429ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="WaveformGenerator.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: WaveformGenerator.elf
+ 
+arm-none-eabi-size   WaveformGenerator.elf 
+arm-none-eabi-objdump -h -S  WaveformGenerator.elf  > "WaveformGenerator.list"
+   text	   data	    bss	    dec	    hex	filename
+   2364	      8	   1584	   3956	    f74	WaveformGenerator.elf
+Finished building: default.size.stdout
+ 
+Finished building: WaveformGenerator.list
  

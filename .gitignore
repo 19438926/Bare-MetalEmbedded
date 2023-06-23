@@ -32,3 +32,14 @@ FlashLED/Debug/FlashLED.elf
 *.c
 .metadata/.plugins/org.eclipse.core.resources/.history/4c/9059218f4d0f001e14ccb0f8cf76b747
 .metadata/.plugins/org.eclipse.core.resources/.history/60/30ab4dee4d0f001e14ccb0f8cf76b747
+.metadata/.log
+.metadata/.log
+*.dat
+.metadata/.plugins/org.eclipse.cdt.core/.log
+*.o
+*.cyclo
+.metadata/.log
+*.dat
+.metadata/.plugins/org.eclipse.cdt.core/.log
+*.pdom
+*.xml

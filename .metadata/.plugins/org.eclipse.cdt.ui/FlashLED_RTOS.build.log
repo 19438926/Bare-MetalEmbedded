@@ -1,16 +1,10 @@
-10:48:25 **** Build of configuration Debug for project FlashLED_RTOS ****
+11:25:39 **** Build of configuration Debug for project FlashLED_RTOS ****
 make -j16 all 
-arm-none-eabi-gcc -o "FlashLED_RTOS.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\Users\HP\Documents\GitHub\Mare-MetalEmbedded\FlashLED_RTOS\STM32F429ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="FlashLED_RTOS.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
-Finished building target: FlashLED_RTOS.elf
- 
 arm-none-eabi-size   FlashLED_RTOS.elf 
-arm-none-eabi-objdump -h -S  FlashLED_RTOS.elf  > "FlashLED_RTOS.list"
    text	   data	    bss	    dec	    hex	filename
   17012	     24	  20344	  37380	   9204	FlashLED_RTOS.elf
 Finished building: default.size.stdout
  
-Finished building: FlashLED_RTOS.list
- 
 
-10:48:26 Build Finished. 0 errors, 0 warnings. (took 1s.399ms)
+11:25:40 Build Finished. 0 errors, 0 warnings. (took 331ms)
 
