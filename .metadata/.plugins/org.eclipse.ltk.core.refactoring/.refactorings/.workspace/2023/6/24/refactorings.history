@@ -1,3 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<session version="1.0">&#x0A;<refactoring comment="Delete resource &apos;FlashLED/Inc/STM32F4Headers&apos;" deleteContents="false" description="Delete resource &apos;FlashLED/Inc/STM32F4Headers&apos;" element1="/FlashLED/Inc/STM32F4Headers" flags="7" id="org.eclipse.ltk.core.refactoring.delete.resources" resources="1" stamp="1686674987190"/>&#x0A;<refactoring comment="Delete 3 resources" deleteContents="false" description="Delete 3 resources" element1="/FlashLEB_HAL" element2="/FlashLED" element3="/FlashLED_RTOS" flags="7" id="org.eclipse.ltk.core.refactoring.delete.resources" resources="3" stamp="1686734499528"/>
-</session>
