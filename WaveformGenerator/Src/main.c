@@ -63,7 +63,7 @@ int main(void) {
 	Micro_Initialisation();
 
 	//Fetch start timestamp.
-	ull_TimeStamp = SysTick_Get_Timestamp();
+	uint64_t ull_TimeStamp = SysTick_Get_Timestamp();
 
 	/******************/
 	/* Loop forever */
