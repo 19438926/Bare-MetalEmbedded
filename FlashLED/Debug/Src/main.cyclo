@@ -1,4 +1,0 @@
-main.c:58:5:main	1
-main.c:75:6:Micro_Initialisation	1
-main.c:89:6:Initialise_External_Clock	4
-main.c:139:6:Initialise_GPIO	1
