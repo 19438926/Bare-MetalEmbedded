@@ -69,15 +69,27 @@ int main(void) {
 	/* Loop forever */
 	while (1) {
 
-		if (SysTick_Elapsed_MicroSeconds(ull_TimeStamp) > 1000000) {
+		uint64_t count = 0;
+		do{
+		if (SysTick_Elapsed_MicroSeconds(ull_TimeStamp) > 2000) {
 
-//			rinige = SysTick_Elapsed_MicroSeconds(ull_TimeStamp);
-//			rinidi = SysTick_Get_Timestamp();
+			PWM_Set_Duty_x10(count);
+			count++;
 			//Update our timestamp for the next iteration
-			ull_TimeStamp += SysTick_MicroSeconds_to_Counts(1000000);
+			ull_TimeStamp += SysTick_MicroSeconds_to_Counts(2000);
+//
+//			GPIOG->ODR ^= LED_PIN; //inverts the specific bit
+		}}while(count <1000);
+		do{
+			if (SysTick_Elapsed_MicroSeconds(ull_TimeStamp) > 2000) {
 
-			GPIOG->ODR ^= LED_PIN; //inverts the specific bit
-		}
+				PWM_Set_Duty_x10(count);
+				count--;
+				//Update our timestamp for the next iteration
+				ull_TimeStamp += SysTick_MicroSeconds_to_Counts(2000);
+
+			}}while(count>0);
+
 
 	}
 }
