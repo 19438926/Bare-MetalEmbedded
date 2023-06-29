@@ -15,10 +15,11 @@
 /*Required Header Files */
 #include "stm32f429xx.h"
 #include "core_cm4.h"
+#include "GlobalDefs.h"
 
 /****************************************************/
 /*Local only definitions */
-#define   SYS_CLOCK_FRQ              72000000
+
 
 /***************************/
 /* Enumerations */

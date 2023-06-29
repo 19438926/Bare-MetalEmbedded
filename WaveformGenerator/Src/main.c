@@ -14,7 +14,7 @@
 /*Required Header Files */
 #include "stm32f429xx.h"
 #include "SysTick.h"
-
+#include "PWM.h"
 /****************************************************/
 /*Local only definitions */
 
@@ -69,15 +69,27 @@ int main(void) {
 	/* Loop forever */
 	while (1) {
 
-		if (SysTick_Elapsed_MicroSeconds(ull_TimeStamp) > 1000000) {
+		uint64_t count = 0;
+		do{
+		if (SysTick_Elapsed_MicroSeconds(ull_TimeStamp) > 2000) {
 
-//			rinige = SysTick_Elapsed_MicroSeconds(ull_TimeStamp);
-//			rinidi = SysTick_Get_Timestamp();
+			PWM_Set_Duty_x10(count);
+			count++;
 			//Update our timestamp for the next iteration
-			ull_TimeStamp += SysTick_MicroSeconds_to_Counts(1000000);
+			ull_TimeStamp += SysTick_MicroSeconds_to_Counts(2000);
+//
+//			GPIOG->ODR ^= LED_PIN; //inverts the specific bit
+		}}while(count <1000);
+		do{
+			if (SysTick_Elapsed_MicroSeconds(ull_TimeStamp) > 2000) {
 
-			GPIOG->ODR ^= LED_PIN; //inverts the specific bit
-		}
+				PWM_Set_Duty_x10(count);
+				count--;
+				//Update our timestamp for the next iteration
+				ull_TimeStamp += SysTick_MicroSeconds_to_Counts(2000);
+
+			}}while(count>0);
+
 
 	}
 }
@@ -96,6 +108,9 @@ void Micro_Initialisation(void) {
 
 	//Initialise any GPIO required.
 	Initialise_GPIO();
+
+	//Initialise PWM Output
+	PWM_Init(100000);
 }
 
 /***********************************************
@@ -155,11 +170,22 @@ void Initialise_External_Clock(void) {
  * @retval None
  */
 void Initialise_GPIO(void) {
-	//Enable clock access to GPIOG
-	RCC->AHB1ENR |= RCC_AHB1ENR_GPIOGEN;
+
+
+	//Enable clock access to GPIOG and GPIOA
+	RCC->AHB1ENR |= RCC_AHB1ENR_GPIOGEN | RCC_AHB1ENR_GPIOAEN;
+
 	//Set PG13 as output
 	GPIOG->MODER |= (1 << 26);
 	GPIOG->MODER &= ~(1 << 27);
+
+	//PWM Output - PA.5
+	//Configure GPIOA.5 to be Alternate Function.
+	GPIOA->MODER |= GPIO_MODER_MODE5_1;
+
+	//Configure the Alternate function index for pinA.5 (to map onto TIM2.CH1).
+	GPIOA->AFR[0] |= GPIO_AFRL_AFRL5_0;
+
 }
 
 /*****************/
