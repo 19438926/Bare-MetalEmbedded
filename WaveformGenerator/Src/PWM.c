@@ -15,6 +15,7 @@
 /*Required Header Files */
 #include "stm32f429xx.h"
 #include "GlobalDefs.h"
+#include "PWM.h"
 
 
 
