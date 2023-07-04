@@ -15,6 +15,8 @@
 #include "stm32f429xx.h"
 #include "SysTick.h"
 #include "PWM.h"
+#include "DAC.h"
+
 /****************************************************/
 /*Local only definitions */
 
@@ -63,32 +65,43 @@ int main(void) {
 	Micro_Initialisation();
 
 	//Fetch start timestamp.
-	uint64_t ull_TimeStamp = SysTick_Get_Timestamp();
+	//uint64_t ull_TimeStamp = SysTick_Get_Timestamp();
+
+	//test DAC
+	uint32_t dac_value = 0;
 
 	/******************/
 	/* Loop forever */
 	while (1) {
 
-		uint64_t count = 0;
-		do{
-		if (SysTick_Elapsed_MicroSeconds(ull_TimeStamp) > 2000) {
-
-			PWM_Set_Duty_x10(count);
-			count++;
-			//Update our timestamp for the next iteration
-			ull_TimeStamp += SysTick_MicroSeconds_to_Counts(2000);
+//		uint64_t count = 0;
+//		do {
+//			if (SysTick_Elapsed_MicroSeconds(ull_TimeStamp) > 2000) {
 //
-//			GPIOG->ODR ^= LED_PIN; //inverts the specific bit
-		}}while(count <1000);
-		do{
-			if (SysTick_Elapsed_MicroSeconds(ull_TimeStamp) > 2000) {
-
-				PWM_Set_Duty_x10(count);
-				count--;
-				//Update our timestamp for the next iteration
-				ull_TimeStamp += SysTick_MicroSeconds_to_Counts(2000);
-
-			}}while(count>0);
+//				PWM_Set_Duty_x10(count);
+//				count++;
+//				//Update our timestamp for the next iteration
+//				ull_TimeStamp += SysTick_MicroSeconds_to_Counts(2000);
+////
+////			GPIOG->ODR ^= LED_PIN; //inverts the specific bit
+//			}
+//		} while (count < 1000);
+//		do {
+//			if (SysTick_Elapsed_MicroSeconds(ull_TimeStamp) > 2000) {
+//
+//				PWM_Set_Duty_x10(count);
+//				count--;
+//				//Update our timestamp for the next iteration
+//				ull_TimeStamp += SysTick_MicroSeconds_to_Counts(2000);
+//
+//			}
+//		} while (count > 0);
+		dac_value += 1;
+		DAC_Set_Output_x100(dac_value);
+		if (dac_value == 10000)
+		{
+			dac_value = 0;
+		}
 
 
 	}
@@ -111,6 +124,9 @@ void Micro_Initialisation(void) {
 
 	//Initialise PWM Output
 	PWM_Init(100000);
+
+	//Initialise DAC
+	DAC_Init();
 }
 
 /***********************************************
