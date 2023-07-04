@@ -96,12 +96,17 @@ int main(void) {
 //
 //			}
 //		} while (count > 0);
-		dac_value += 1;
-		DAC_Set_Output_x100(dac_value);
-		if (dac_value == 10000)
-		{
-			dac_value = 0;
-		}
+		do{
+			dac_value += 100;
+			DAC_Set_Output_x100(dac_value);
+			PWM_Set_Duty_x10(dac_value/10);
+		} while(dac_value < 10000);
+
+		do{
+			dac_value -= 100;
+			DAC_Set_Output_x100(dac_value);
+			PWM_Set_Duty_x10(dac_value/10);
+		} while(dac_value > 0);
 
 
 	}
