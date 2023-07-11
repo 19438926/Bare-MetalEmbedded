@@ -63,7 +63,6 @@ void DAC_Init()
 	// As we're using 12bit ,the scalar for DAC_Set_Output_x100 needs to be
 	// configured accordingly.
 	ul_Set_Output_Scalar = 0xFFF - (END_BAND_SIZE * 2);
-
 }
 
 
@@ -79,7 +78,6 @@ void DAC_Set_Output_x100(uint32_t us_New_Demand_x100)
 	DAC->DHR12R1 = END_BAND_SIZE + ((ul_Set_Output_Scalar * us_New_Demand_x100)/10000);
 	// Trigger update of output
 	DAC->SWTRIGR |= DAC_SWTRIGR_SWTRIG1;
-
 }
 
 
