@@ -13,12 +13,16 @@
 /****************************************************/
 /*Required Header Files */
 #include "stm32f429xx.h"
+
 #include "SysTick.h"
 #include "PWM.h"
 #include "DAC.h"
+#include"WaveformGenerator.h"
 
 /****************************************************/
 /*Local only definitions */
+#define FPU_CP10_FULL (0x00200000 + 0x00100000)
+#define FPU_CP11_FULL (0x00800000 + 0x00400000)
 
 //Pin definitions
 #define PIN13                      (1<<13)
@@ -44,6 +48,7 @@
 
 /*********************************************/
 /* Local only variable declaration */
+_WAVEFORM_DESCRIPTOR  Waveform;
 
 //uint64_t rinige;
 //uint64_t ull_TimeStamp;
@@ -65,16 +70,36 @@ int main(void) {
 	Micro_Initialisation();
 
 	//Fetch start timestamp.
-	//uint64_t ull_TimeStamp = SysTick_Get_Timestamp();
+	uint64_t ull_TimeStamp = SysTick_Get_Timestamp();
+	uint64_t ull_WaveStamp = ull_TimeStamp;
 
-	//test DAC
-	uint32_t dac_value = 0;
+	//configure our waveform descriptor structure.
+	Waveform.e_WaveType = eWT_Triangular;
+	Waveform.f_Amplitude = 100;
+	Waveform.f_Offset = 0.0;
+	Waveform.ull_Period_uS=5000;
+	float f_WaveSignal;
 
 	/******************/
 	/* Loop forever */
 	while (1) {
+		//Update our timestamp
+		ull_TimeStamp = SysTick_Get_Timestamp();
+		if(ull_TimeStamp > (ull_WaveStamp + SysTick_MicroSeconds_to_Counts(Waveform.ull_Period_uS)))
+		{
+			ull_WaveStamp += SysTick_MicroSeconds_to_Counts(Waveform.ull_Period_uS);
+		}
+		// Get the signal level required for 'now'.
+		f_WaveSignal = WaveformGenerator_ComputeSignal(&Waveform, ull_TimeStamp - ull_WaveStamp);
 
-//		uint64_t count = 0;
+		//Set DAC Output
+		DAC_Set_Output_x100((uint32_t)(f_WaveSignal * 100));
+
+		//Set PWM Output
+		PWM_Set_Duty_x10((uint16_t)(f_WaveSignal*10));
+
+
+//		uint64_t count = 0;0
 //		do {
 //			if (SysTick_Elapsed_MicroSeconds(ull_TimeStamp) > 2000) {
 //
@@ -96,17 +121,7 @@ int main(void) {
 //
 //			}
 //		} while (count > 0);
-		do{
-			dac_value += 100;
-			DAC_Set_Output_x100(dac_value);
-			PWM_Set_Duty_x10(dac_value/10);
-		} while(dac_value < 10000);
 
-		do{
-			dac_value -= 100;
-			DAC_Set_Output_x100(dac_value);
-			PWM_Set_Duty_x10(dac_value/10);
-		} while(dac_value > 0);
 
 
 	}
@@ -132,6 +147,9 @@ void Micro_Initialisation(void) {
 
 	//Initialise DAC
 	DAC_Init();
+
+	//Enable the FPU (floating point co-processor,access = full access)
+	SCB->CPACR |= FPU_CP10_FULL | FPU_CP11_FULL ;
 }
 
 /***********************************************
