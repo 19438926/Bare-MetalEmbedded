@@ -23,7 +23,6 @@
 
 /****************************************************/
 /*Local only definitions */
-#define Pi       3.1415926
 
 /***************************/
 /* Enumerations */
@@ -54,16 +53,16 @@ float WaveformGenerator_ComputeSignal(_WAVEFORM_DESCRIPTOR *pWave,uint64_t ull_T
 {
 	float f_Result = 0.0;
 	float f_Calc;
-	uint64_t ull_Calc;
+
 
 	//Generate the relevant point on the relevant wave type
 	switch (pWave->e_WaveType)
 	{
 	case eWT_Sine:
 		//Calculate the 'x' value in the sine function by using linear interpolation
-		f_Calc = f_Interpolate_Over_Time(0,0,SysTick_MicroSeconds_to_Counts(pWave->ull_Period_uS),2*Pi, ull_Timestamp);
+		f_Calc = f_Interpolate_Over_Time(0,0,SysTick_MicroSeconds_to_Counts(pWave->ull_Period_uS),2*M_PI, ull_Timestamp);
 		//Calculate the amplitude by sine function and added offset and constant(avoid to negative value)
-		f_Result = ((pWave->f_Amplitude)/2)*sin(f_Calc) + (pWave->f_Amplitude)/2 + pWave->f_Offset ;
+		f_Result = ((pWave->f_Amplitude)/2)*sin(f_Calc) + (pWave->f_Amplitude)/2 ;
 
 		break;
 	case eWT_SawTooth:
@@ -87,9 +86,7 @@ float WaveformGenerator_ComputeSignal(_WAVEFORM_DESCRIPTOR *pWave,uint64_t ull_T
 		// Square wave form has two different wave ,each   up/ down takes half period.
 		if((ull_Timestamp) < SysTick_MicroSeconds_to_Counts(pWave->ull_Period_uS)/2)
 		{
-			ull_Calc=pWave->f_Amplitude;
-			f_Result = ull_Calc;
-
+			f_Result=pWave->f_Amplitude;
 		}
 		break;
 	case eWT_Custom:
@@ -97,7 +94,7 @@ float WaveformGenerator_ComputeSignal(_WAVEFORM_DESCRIPTOR *pWave,uint64_t ull_T
 		break;
 
 	}
-	return f_Result;
+	return f_Result + pWave->f_Offset ;
 }
 
 
