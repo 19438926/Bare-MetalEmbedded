@@ -18,6 +18,7 @@
 #include "PWM.h"
 #include "DAC.h"
 #include"WaveformGenerator.h"
+#include"USART.h"
 
 /****************************************************/
 /*Local only definitions */
@@ -98,7 +99,8 @@ int main(void) {
 		//Set PWM Output
 		PWM_Set_Duty_x10((uint16_t)(f_WaveSignal*10));
 
-
+		//Process USART COMS
+		USART_Process();
 //		uint64_t count = 0;0
 //		do {
 //			if (SysTick_Elapsed_MicroSeconds(ull_TimeStamp) > 2000) {
@@ -150,6 +152,9 @@ void Micro_Initialisation(void) {
 
 	//Enable the FPU (floating point co-processor,access = full access)
 	SCB->CPACR |= FPU_CP10_FULL | FPU_CP11_FULL ;
+
+	//Initialise USART
+	USART_Init(9600);
 }
 
 /***********************************************
@@ -224,6 +229,12 @@ void Initialise_GPIO(void) {
 
 	//Configure the Alternate function index for pinA.5 (to map onto TIM2.CH1).
 	GPIOA->AFR[0] |= GPIO_AFRL_AFRL5_0;
+
+	//USART : Configure the pins we need (PA9(tx)/10(rx)) for relevant alternate function
+	GPIOA->MODER |= GPIO_MODER_MODE9_1 | GPIO_MODER_MODE10_1;
+	GPIOA->AFR[1] |= GPIO_AFRH_AFRH1_0 | GPIO_AFRH_AFRH1_1 | GPIO_AFRH_AFRH1_2;
+	GPIOA->AFR[1] |= GPIO_AFRH_AFRH2_0 | GPIO_AFRH_AFRH2_1 | GPIO_AFRH_AFRH2_2;
+
 
 }
 

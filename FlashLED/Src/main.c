@@ -111,7 +111,7 @@ void Initialise_External_Clock (void){
 	RCC->CFGR |= RCC_CFGR_PPRE2_DIV1;
 
     //Configure the Main PLL
-	RCC->PLLCFGR |= (PLL_M << 0) | (PLL_N << 6) | (PLL_P << 16) | (PLL_Q << 24)
+	RCC->PLLCFGR = (PLL_M << 0) | (PLL_N << 6) | (PLL_P << 16) | (PLL_Q << 24)
 			| (PLL_SRC << 22);
 
     //Enable the PLL and wait ready
