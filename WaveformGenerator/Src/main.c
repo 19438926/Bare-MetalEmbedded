@@ -154,7 +154,7 @@ void Micro_Initialisation(void) {
 	SCB->CPACR |= FPU_CP10_FULL | FPU_CP11_FULL ;
 
 	//Initialise USART
-	USART_Init(9600);
+	USART_Init(115200);
 }
 
 /***********************************************
