@@ -22,6 +22,8 @@
 
 
 
+
+
 /****************************************************/
 /*Local only definitions */
 
@@ -34,7 +36,8 @@ typedef enum
 	Receiving,
 	RxOverflow,
 	RxMsgCompleted,
-	Transmitting,
+	TransmitionStart,
+	WaitingTransmissionEnd
 }eUSART_STATE;
 
 /**************************/
@@ -50,6 +53,7 @@ uint8_t RxData[64];
 uint32_t RxDataCount = 0;
 uint8_t *p_TxData;
 uint32_t TxDataCount;
+uint8_t uc_RxProcessingCompleted = FALSE;
 
 /*********************************************
  * @brief USART_Init
@@ -80,7 +84,79 @@ void USART_Init(uint32_t ul_BaudRate)
 
 	//Enable Tx and Rx
 	USART1->CR1 |= USART_CR1_TE | USART_CR1_RE;
+
+	//Set the flag to indicate any previous Rx processing has completed
+	//This prompts re-setting to Rx mode.
+	uc_RxProcessingCompleted = TRUE;
+
+	//Enable interrupts for USART1...
+	NVIC_EnableIRQ(USART1_IRQn);
+	//Enable Rx Interrupt within the USART
+	USART1->CR1 |= USART_CR1_RXNEIE;
+	//Enable Tx Interrupt within the USART
+	USART1->CR1 |= USART_CR1_TCIE;
 }
+
+/*********************************************
+ * @brief USART1_Clear_Rx
+ * Indicates to this module that any Rx data received
+ * can now be discarded and preparations made for next.
+ * @param None
+ * @retval None
+ */
+void USART1_Clear_Rx(void)
+{
+	//Simply set the flag to be picked up by the state machine.
+	uc_RxProcessingCompleted= TRUE;
+}
+
+/*********************************************
+ * @brief USART1_IRQHandler
+ * Handles all USART1 Interrupts
+ * @param None
+ * @retval None
+ */
+void USART1_IRQHandler(void)
+{
+	//Has the RxNotEmpty interrupt fired?
+	if(USART1->SR & USART_SR_RXNE)
+	{
+		//Byte received.
+		//Check we're not overflowing array
+		if(RxDataCount < sizeof(RxData))
+		{
+			// No overflow - load into array
+			RxData[RxDataCount++] = USART1->DR;
+		}
+		else
+		{
+			// Avoiding overflowing array , simply 'read' the DR to continue
+			USART1->DR;
+			RxDataCount++;
+		}
+	}
+
+	// Has the TxCompleted interrupt fired?
+	if(USART1->SR & USART_SR_TC)
+	{
+		// Clear the interrupt
+		USART1->SR &= ~USART_SR_TC;
+
+		//Byte sending has completed.
+
+		//Are there more bytes to send?
+		if(TxDataCount > 0)
+		{
+			// Transmit next byte
+			USART1->DR = *p_TxData;
+
+			// Increment on to next byte
+			p_TxData ++;
+			TxDataCount--;
+		}
+	}
+}
+
 /*********************************************
  * @brief USART_Process
  * Handles processing of USART communications data (Tx/Rx)
@@ -89,43 +165,53 @@ void USART_Init(uint32_t ul_BaudRate)
  */
 void USART_Process(void)
 {
-	// Receive whole messages before processing them.
-	static uint64_t ull_Timestamp;//Used for detecting end of message(i.e. No more Rx for a period).
+	// Receive whole messages via interrupt then echo back the whole message also via interrupts.
+
+	static uint64_t ull_Timestamp; // Used for detecting end of message(i.e. No more Rx for a period).
+	static uint32_t ul_RxCountLT; // Used for tracking how many nytes were received via IRQ last time we checked
 
 	//Action here depends on current state of port
 	switch(USART_State)
 	{
 	case RxIdle:
-		//Default state, waiting for a message to start coming in.
-
-		//Has the first byte of a message been received?
-		if(USART1->SR & USART_SR_RXNE)
+		// Has any previously received message been dealt with.
+		// Is it time to re-initialise and wait for another Rx message?
+		if ( uc_RxProcessingCompleted == TRUE)
 		{
-			//Set nest state
-			USART_State = Receiving;
 
-			//Reset the Rx count for a new incoming message.
+			// Clear the indicator
+			uc_RxProcessingCompleted = FALSE;
+
+			// Clear down the Rx counter, ready for a new message
 			RxDataCount = 0;
+		}
+		else
+		{
+			// Has the interrupt started receiving characters / bytes?
+			if(RxDataCount > 0)
+			{
+				// Message is incoming via interrupts
 
-			//Recurse to take next action now.
-			USART_Process();
+				// Note how many bytes received so far
+				ul_RxCountLT = RxDataCount;
+
+				// Move to next state to detect end of message.
+				USART_State = Receiving ;
+
+				// Note the time that we can tell when the bytes stop coming in.
+				ull_Timestamp = SysTick_Get_Timestamp();
+			}
 		}
 		break;
 
 	case Receiving:
-		// If there's a new byte waiting, save it to our array
-		if(USART1->SR & USART_SR_RXNE)
+		// Have we received any more characters via IRQ?
+		if ( RxDataCount > ul_RxCountLT)
 		{
-			//Save the byte from the Data Register
-			RxData[RxDataCount++] = USART1->DR;
+			// Update local copy of count
+			ul_RxCountLT = RxDataCount ;
 
-			//Check to avoid over-running our array if message is too long.
-			if(RxDataCount >= sizeof(RxData))
-			{
-				USART_State = RxOverflow;
-			}
-
-			//Note the time so we can tell when bytes stop coming in.
+			// As more data coming in , note time to detect when its ended.
 			ull_Timestamp = SysTick_Get_Timestamp();
 		}
 		else
@@ -137,35 +223,14 @@ void USART_Process(void)
 				//Message reception completed.
 				USART_State = RxMsgCompleted;
 
-				//Here again we can recurse to process this immediately.
-				USART_Process();
-
 			}
 		}
 		break;
 
 	case RxOverflow:
-		// Incoming message is too long.
-		// Keep accepting but ignoring the bytes until finished.
-		if(USART1->SR & USART_SR_RXNE)
-		{
-			//Access the register to 'ack' which clears theRXNE, but ignore the byte
-			USART1->DR;
-
-			// Note the time so we can tell when bytes stop coming in.
-			ull_Timestamp = SysTick_Get_Timestamp();
-		}
-		else
-		{
-			//Has enough time elapsed to denote the end of message
-			//This should really be calculated from baud rate
-			if(SysTick_Elapsed_MicroSeconds(ull_Timestamp)>500)//Each char is about 100us at 115200 baud rate.
-			{
-				//Message reception completed.
-				USART_State = RxMsgCompleted;
-			}
-
-		}
+		// This state cannot be hit as the interrupt continues to count
+		// bytes received but won't load into our array past the end.
+		// Any overflow bytes are ignored at the interrupt level.
 		break;
 
 	case RxMsgCompleted:
@@ -174,33 +239,47 @@ void USART_Process(void)
 		//Echo complete received message back to sender for now
 		p_TxData = RxData;
 		TxDataCount = RxDataCount;
-		USART_State = Transmitting;
+		if ( TxDataCount > sizeof(RxData))
+		{
+			TxDataCount = sizeof(RxData);
+		}
+		USART_State = TransmitionStart;
 
 		// Recurse to start transmission now
 		USART_Process();
 		break;
 
-	case Transmitting:
-		// Has the previous byte transmission completed?
-		if(USART1->SR & USART_SR_TC)
+	case TransmitionStart:
+		// Here we load the first byte to be transmitted and let the transmission complete
+		// interrupt handle sending all the required subsequent bytes.
+		USART1->DR = *p_TxData;
+
+		// Increment on to next character / byte for the interrupt to send once this first
+		// one has 'left the building'.
+		p_TxData ++;
+		// And decrement the Tx count.
+		TxDataCount --;
+
+		// Now wait for the transmission to end.
+		USART_State = WaitingTransmissionEnd;
+		break;
+
+	case  WaitingTransmissionEnd:
+		// Has the transmission completed via interrupt?
+		if (TxDataCount == 0)
 		{
-			//Transmit the next byte / char
-			USART1->DR = *p_TxData;
+			// As there is no real processing, the processing of the incoming command is
+			// therefore completed once the echo back transmission has finished.
+			// we therefore call USART1_Clear_Rx(); when finished here for now.
+			USART1_Clear_Rx();
 
-			//Increment on to next character / byte
-			p_TxData ++;
-
-			//All bytes transmitted?
-			if(--TxDataCount == 0)
-			{
-				//Transmission completed.
-				USART_State = RxIdle;
-			}
-
+			// And set the state back to RxIdle to go again.
+			USART_State = RxIdle;
 		}
 		break;
 	}
 
 }
+
 
 

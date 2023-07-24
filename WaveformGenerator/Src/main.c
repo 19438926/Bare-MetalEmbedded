@@ -51,6 +51,7 @@
 /* Local only variable declaration */
 _WAVEFORM_DESCRIPTOR  Waveform;
 
+
 //uint64_t rinige;
 //uint64_t ull_TimeStamp;
 //uint64_t rinidi;
@@ -69,6 +70,7 @@ void Initialise_External_Clock(void);
 int main(void) {
 	//Initialise to use external clock , enable relevant gpio and peripheral etc.
 	Micro_Initialisation();
+
 
 	//Fetch start timestamp.
 	uint64_t ull_TimeStamp = SysTick_Get_Timestamp();
@@ -101,6 +103,9 @@ int main(void) {
 
 		//Process USART COMS
 		USART_Process();
+
+
+
 //		uint64_t count = 0;0
 //		do {
 //			if (SysTick_Elapsed_MicroSeconds(ull_TimeStamp) > 2000) {
@@ -154,7 +159,7 @@ void Micro_Initialisation(void) {
 	SCB->CPACR |= FPU_CP10_FULL | FPU_CP11_FULL ;
 
 	//Initialise USART
-	USART_Init(115200);
+	USART_Init(961000);
 }
 
 /***********************************************

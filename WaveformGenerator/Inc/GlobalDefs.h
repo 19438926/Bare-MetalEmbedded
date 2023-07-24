@@ -12,6 +12,13 @@
 /* Global Definitions  */
 #define          SYS_CLOCK_FRQ       72000000
 
+#ifndef  FALSE
+#define  FALSE   0
+#endif
+#ifndef  TRUE
+#define  TRUE   !FALSE
+#endif
+
 /***************************************************/
 /* Global Types */
 

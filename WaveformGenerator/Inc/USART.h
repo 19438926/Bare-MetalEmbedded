@@ -21,6 +21,7 @@
 /*Externally available functions */
 void USART_Init(uint32_t ul_BaudRate);
 void USART_Process(void);
+void USART1_IRQHandler(void);
 
 
 #endif /* USART_H_ */
