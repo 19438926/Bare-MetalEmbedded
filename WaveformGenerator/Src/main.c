@@ -20,6 +20,7 @@
 #include"WaveformGenerator.h"
 #include"USART.h"
 
+
 /****************************************************/
 /*Local only definitions */
 #define FPU_CP10_FULL (0x00200000 + 0x00100000)
@@ -106,6 +107,8 @@ int main(void) {
 
 
 
+
+
 //		uint64_t count = 0;0
 //		do {
 //			if (SysTick_Elapsed_MicroSeconds(ull_TimeStamp) > 2000) {
@@ -133,6 +136,7 @@ int main(void) {
 
 	}
 }
+
 /***********************************************
  * @brief   Micro_Initialisation
  * This function configures the micro clocks ,gpio and peripherals used by the system
@@ -242,6 +246,7 @@ void Initialise_GPIO(void) {
 
 
 }
+
 
 /*****************/
 /* End of files */

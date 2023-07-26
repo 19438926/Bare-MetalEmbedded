@@ -250,15 +250,19 @@ void USART_Process(void)
 		break;
 
 	case TransmitionStart:
-		// Here we load the first byte to be transmitted and let the transmission complete
-		// interrupt handle sending all the required subsequent bytes.
-		USART1->DR = *p_TxData;
 
 		// Increment on to next character / byte for the interrupt to send once this first
 		// one has 'left the building'.
 		p_TxData ++;
 		// And decrement the Tx count.
 		TxDataCount --;
+
+
+		// Here we load the first byte to be transmitted and let the transmission complete
+		// interrupt handle sending all the required subsequent bytes.
+		USART1->DR = *(p_TxData-1);
+
+
 
 		// Now wait for the transmission to end.
 		USART_State = WaitingTransmissionEnd;
