@@ -1,32 +1,27 @@
 /**************************************************************************************************************
- *                  File Name       :GlobalDefs.h
- *                  Overview        :Central place to keep all global definitions and types etc.
+ *                  File Name       :USART.h
+ *                  Overview        :USART functionality.
  *                  Authors         :Wenze Pan
  **************************************************************************************************************
  *                  Copyright @ As Applicable
  **************************************************************************************************************/
 
-#ifndef GLOBALDEFS_H_
-#define GLOBALDEFS_H_
+#ifndef USART_H_
+#define USART_H_
 /***************************************************/
-/* Global Definitions  */
-#define          SYS_CLOCK_FRQ       72000000
-
-#ifndef  FALSE
-#define  FALSE   0
-#endif
-#ifndef  TRUE
-#define  TRUE   !FALSE
-#endif
+/* Definitions required by this module */
 
 /***************************************************/
-/* Global Types */
+/* Types used by this module */
 
 /**************************************************/
-/* Globally available variable */
+/* Externally available variable */
 
 /*************************************************/
-/*Globally available functions */
+/*Externally available functions */
+void USART_Init(uint32_t ul_BaudRate);
+void USART_Process(void);
+void USART1_IRQHandler(void);
 
 
-#endif /* GLOBALDEFS_H_ */
+#endif /* USART_H_ */
