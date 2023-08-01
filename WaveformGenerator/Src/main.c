@@ -69,6 +69,7 @@ void Initialise_External_Clock(void);
  * @retval None
  */
 int main(void) {
+
 	//Initialise to use external clock , enable relevant gpio and peripheral etc.
 	Micro_Initialisation();
 
@@ -88,7 +89,6 @@ int main(void) {
 	/* Loop forever */
 	while (1) {
 		//Update our timestamp
-		ull_TimeStamp = SysTick_Get_Timestamp();
 		if(ull_TimeStamp > (ull_WaveStamp + SysTick_MicroSeconds_to_Counts(Waveform.ull_Period_uS)))
 		{
 			ull_WaveStamp += SysTick_MicroSeconds_to_Counts(Waveform.ull_Period_uS);
@@ -227,6 +227,9 @@ void Initialise_GPIO(void) {
 
 	//Enable clock access to GPIOG and GPIOA
 	RCC->AHB1ENR |= RCC_AHB1ENR_GPIOGEN | RCC_AHB1ENR_GPIOAEN;
+
+	// Enable clock access for DMA2
+	RCC->AHB1ENR |= RCC_AHB1ENR_DMA2EN;
 
 	//Set PG13 as output
 	GPIOG->MODER |= (1 << 26);
