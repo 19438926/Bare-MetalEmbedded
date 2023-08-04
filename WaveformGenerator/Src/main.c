@@ -70,37 +70,27 @@ void Initialise_External_Clock(void);
  */
 int main(void) {
 
+	_WAVEFORM_DESCRIPTOR Waveform;
+
 	//Initialise to use external clock , enable relevant gpio and peripheral etc.
 	Micro_Initialisation();
-
-
-	//Fetch start timestamp.
-	uint64_t ull_TimeStamp = SysTick_Get_Timestamp();
-	uint64_t ull_WaveStamp = ull_TimeStamp;
 
 	//configure our waveform descriptor structure.
 	Waveform.e_WaveType = eWT_Triangular;
 	Waveform.f_Amplitude = 100;
 	Waveform.f_Offset = 0.0;
-	Waveform.ull_Period_uS=5000;
-	float f_WaveSignal;
+	Waveform.ull_Period_uS=10000;
+
+	// Initialise the starting waveform as above.
+	WaveformGenerator_Set_Waveform(Waveform);
 
 	/******************/
 	/* Loop forever */
 	while (1) {
-		//Update our timestamp
-		if(ull_TimeStamp > (ull_WaveStamp + SysTick_MicroSeconds_to_Counts(Waveform.ull_Period_uS)))
-		{
-			ull_WaveStamp += SysTick_MicroSeconds_to_Counts(Waveform.ull_Period_uS);
-		}
-		// Get the signal level required for 'now'.
-		f_WaveSignal = WaveformGenerator_ComputeSignal(&Waveform, ull_TimeStamp - ull_WaveStamp);
 
-		//Set DAC Output
-		DAC_Set_Output_x100((uint32_t)(f_WaveSignal * 100));
+		// Update outputs in case manual updates are needed.
+		WaveformGenerator_UpdateOutputs();
 
-		//Set PWM Output
-		PWM_Set_Duty_x10((uint16_t)(f_WaveSignal*10));
 
 		//Process USART COMS
 		USART_Process();
