@@ -26,7 +26,7 @@
 
 /****************************************************/
 /*Local only definitions */
-#define RX_BUFF_SIZE                    64
+#define RX_BUFF_SIZE                      (MAX_CUSTOM_DATA_LENGTH * 6) + 13   // Up to 5 chars per number plus comma + length of the command.
 
 
 /***************************/
@@ -50,11 +50,15 @@ typedef enum
 /*********************************************/
 /* Local only variable declaration */
 eUSART_STATE USART_State = RxIdle;
-uint8_t RxData[RX_BUFF_SIZE];
+char RxData[RX_BUFF_SIZE];
 uint32_t RxDataCount = 0;
-uint8_t *p_TxData;
+char *p_TxData;
 uint32_t TxDataCount;
 uint8_t uc_RxProcessingCompleted = FALSE;
+uint8_t TransmissionRequired = FALSE;
+
+_Rx_DATA Received_Data;
+
 
 /*********************************************
  * @brief USART_Init
@@ -293,6 +297,60 @@ void Tx_Via_DMA(uint32_t p_Src,uint32_t len)
 }
 
 /*********************************************
+ * @brief USART_Fetch_Rx
+ * Returns Rx data - if any.
+ * @param None
+ * @retval _Rx_DATA - structure containing Rx details and data.
+ */
+_Rx_DATA USART_Fetch_Rx()
+{
+	// Is there a message to provide?
+	if (USART_State == RxMsgCompleted)
+	{
+		// Message has been received.
+		Received_Data.s_DataLen = RX_BUFF_SIZE - DMA2_Stream2->NDTR;
+		Received_Data.pData = RxData;
+	}
+	else
+	{
+		Received_Data.s_DataLen = 0 ;
+	}
+	return Received_Data;
+}
+
+/*********************************************
+ * @brief USART_Request_Tx
+ * Handles processing of USART communication data (Tx/Rx)
+ * @param uint8_t*   pointer to data
+ * 		uint32_t     Num bytes to transmit
+ * @retval TRUE = Transmitting, FALSE = Can't transmit as already transmitting.
+ */
+uint8_t USART_Request_Tx(char *p_TxDataRequested , uint32_t TxDataCountRequested)
+{
+	uint8_t TransmissionAccepted = FALSE;
+	switch( USART_State)
+	{
+	case RxIdle:
+	case Receiving:
+	case RxMsgCompleted:
+		// Store the transmission details.
+		p_TxData = p_TxDataRequested;
+		TxDataCount = TxDataCountRequested;
+
+		// Indicate to state machine below that a transmission is needed.
+		TransmissionAccepted = TRUE;
+		TransmissionRequired = TRUE;
+		break;
+
+	default:
+		// Nothing to do here - can't transmit.
+		break;
+	}
+	return TransmissionAccepted;
+
+}
+
+/*********************************************
  * @brief USART_Process
  * Handles processing of USART communications data (Tx/Rx)
  * @param None
@@ -304,6 +362,13 @@ void USART_Process(void)
 
 	static uint64_t ull_Timestamp; // Used for detecting end of message(i.e. No more Rx for a period).
 	static uint32_t ul_RxCountLT; // Used for tracking how many nytes were received via DMA last time we checked
+
+	// If there's a requirement to transmit a message, we can assume any received message is dealt with
+	// and override with the transmission.
+	if (TransmissionRequired)
+	{
+		USART_State = TransmitionStart;
+	}
 
 	//Action here depends on current state of port
 	switch(USART_State)
@@ -349,6 +414,9 @@ void USART_Process(void)
 			{
 				// Message reception completed.
 				USART_State = RxMsgCompleted;
+
+				// Set the next character as a zero to properly null terminate
+				RxData[RX_BUFF_SIZE - DMA2_Stream2->NDTR] = 0 ;
 			}
 		}
 
@@ -363,25 +431,15 @@ void USART_Process(void)
 		break;
 
 	case RxMsgCompleted:
-		// Process the 'complete' message that has been received...
-
-		//Echo complete received message back to sender for now
-		p_TxData = RxData;
-		TxDataCount =  RX_BUFF_SIZE - DMA2_Stream2->NDTR;
-		if ( TxDataCount > sizeof(RxData))
-		{
-			TxDataCount = sizeof(RxData);
-		}
-		USART_State = TransmitionStart;
-
-		// Recurse to start transmission now
-		USART_Process();
+		// This is now a wait state - hold on to the data until another module has
+		// processed it and called "USART_Clear_Rx(void)"
 		break;
 
 	case TransmitionStart:
 		// Trigger USART Tx via DMA...
 		Tx_Via_DMA((uint32_t)p_TxData,TxDataCount);
 		USART_State = WaitingTransmissionEnd;
+		TransmissionRequired = FALSE;
 		break;
 
 	case  WaitingTransmissionEnd:
