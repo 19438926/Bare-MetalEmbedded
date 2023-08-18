@@ -263,25 +263,25 @@ void cmd_SetType( char *p_Data)
 		Waveform.e_WaveType = eWT_Sine;
 		c_CommandActioned = TRUE;
 	}
-	else if (strncmp(&p_Data[9], "Triangle", 4) == 0)
+	else if (strncmp(&p_Data[9], "Triangle", 8) == 0)
 	{
 		// Triangle wave requested.
 		Waveform.e_WaveType = eWT_Triangular;
 		c_CommandActioned = TRUE;
 	}
-	else if(strncmp(&p_Data[9],"Sawtooth", 4) == 0)
+	else if(strncmp(&p_Data[9],"Sawtooth", 8) == 0)
 	{
 		// Sawtooth wave requested.
 		Waveform.e_WaveType = eWT_SawTooth;
 		c_CommandActioned = TRUE;
 	}
-	else if(strncmp(&p_Data[9],"Square", 4) == 0)
+	else if(strncmp(&p_Data[9],"Square", 6) == 0)
 		{
 			// Sawtooth wave requested.
 			Waveform.e_WaveType = eWT_Square;
 			c_CommandActioned = TRUE;
 		}
-	else if(strncmp(&p_Data[9],"Custom", 4) == 0)
+	else if(strncmp(&p_Data[9],"Custom", 6) == 0)
 		{
 			// Sawtooth wave requested.
 			Waveform.e_WaveType = eWT_Custom;
