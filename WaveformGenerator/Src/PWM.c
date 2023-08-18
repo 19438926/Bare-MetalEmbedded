@@ -92,6 +92,17 @@ void PWM_Set_Duty_x10(uint16_t us_New_Demand_x10)
 
 }
 
+/*********************************************
+ * @brief PWM_Get_Base_Frequency
+ * Gets the current PWM base frequency.
+ * @param uint16_t us_New_Demand_x10
+ * @retval None
+ */
+uint32_t PWM_GET_Base_Frequency()
+{
+	return ull_Configured_PWM_Frequency;
+}
+
 
 
 

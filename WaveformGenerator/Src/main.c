@@ -19,6 +19,7 @@
 #include "DAC.h"
 #include"WaveformGenerator.h"
 #include"USART.h"
+#include"CommandHandler.h"
 
 
 /****************************************************/
@@ -97,7 +98,7 @@ int main(void) {
 
 
 
-
+		CommandHandler_Run();
 
 //		uint64_t count = 0;0
 //		do {

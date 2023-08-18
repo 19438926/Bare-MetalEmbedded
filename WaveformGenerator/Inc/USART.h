@@ -30,7 +30,7 @@ void USART_Process(void);
 void USART1_IRQHandler(void);
 
 _Rx_DATA USART_Fetch_Rx ();
-void USART_Clear_Rx(void);
+void USART1_Clear_Rx(void);
 uint8_t USART_Request_Tx(char *p_TxDataRequested , uint32_t TxDataCountRequested);
 
 
