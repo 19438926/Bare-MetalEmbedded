@@ -1,15 +1,19 @@
 /**************************************************************************************************************
- *                  File Name       :PWM.h
- *                  Overview        :PWM functionality.
+ *                  File Name       :CommandHandler.h
+ *                  Overview        :CommandHandler functionality.
  *                  Authors         :Wenze Pan
  **************************************************************************************************************
  *                  Copyright @ As Applicable
  **************************************************************************************************************/
 
-#ifndef PWM_H_
-#define PWM_H_
+#ifndef COMMANDHANDLER_H_
+#define COMMANDHANDLER_H_
+
 /***************************************************/
 /* Definitions required by this module */
+
+/***************************************************/
+/*Enumerations used by this module */
 
 /***************************************************/
 /* Types used by this module */
@@ -19,9 +23,8 @@
 
 /*************************************************/
 /*Externally available functions */
-void PWM_Init(uint32_t ull_PWM_Frequency);
-void PWM_Set_Duty_x10(uint16_t us_New_Demand_x10);
-uint32_t PWM_GET_Base_Frequency();
+void CommandHandler_Run( void );
 
 
-#endif /* PWM_H_ */
+
+#endif /* COMMANDHANDLER_H_ */
