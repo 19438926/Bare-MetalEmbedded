@@ -48,12 +48,14 @@ typedef struct
 _WAVEFORM_DESCRIPTOR  CurrentWaveform;
 _CUSTOM_WAVEFORM_DATA CustomWaveform;
 
+uint16_t us_DAC_Output_Values[MAX_CUSTOM_DATA_LENGTH];
 
 /**************************/
 /* Local only function prototypes */
 float f_Interpolate_Over_Time( uint64_t  ull_Previous_uS, float f_Previous_Reading,
 		                       uint64_t  ull_Next_uS, float f_Next_Reading,
 							   uint64_t  ull_Return_uS);
+void CreateDMAPattern();
 
 /*********************************************
  * @brief WaveformGenerator_UpdateOuputs
@@ -109,7 +111,7 @@ void WaveformGenerator_Clear_Custom_Data()
 	if((CurrentWaveform.e_WaveType == eWT_Custom) && (CurrentWaveform.ull_Period_uS > MAX_FREQ_MANUALLY_OUTPUTTED_uS))
 	{
 		// Data has  to be processed for use with DMA
-		//CreateDMAPattern(); // All zero's in this instance.
+		CreateDMAPattern(); // All zero's in this instance.
 	}
 }
 
@@ -136,7 +138,7 @@ uint8_t WaveformGenerator_Add_Custom_Data(uint16_t *p_Data, uint16_t us_NumData)
 		if((CurrentWaveform.e_WaveType == eWT_Custom)&& (CurrentWaveform.ull_Period_uS > MAX_FREQ_MANUALLY_OUTPUTTED_uS))
 		{
 			// Data has to be processed for use with DMA
-			// CreateDMAPattern();
+			 CreateDMAPattern();
 		}
 	}
 	// else will naturally return false, indicating unable to add data.
@@ -170,7 +172,7 @@ void WaveformGenerator_Set_Waveform(_WAVEFORM_DESCRIPTOR NewWave)
 	if (CurrentWaveform.ull_Period_uS < MAX_FREQ_MANUALLY_OUTPUTTED_uS)
 	{
 		 // Data has to be processed for use with DMA
-		//CreateDMAPattern();
+		CreateDMAPattern();
 	}
 }
 
@@ -270,6 +272,30 @@ float f_Interpolate_Over_Time(uint64_t ull_Previous_uS, float f_Previous_Reading
 {
 	return f_Previous_Reading + ((f_Next_Reading - f_Previous_Reading) / (ull_Next_uS - ull_Previous_uS))*
 			                  (ull_Return_uS-ull_Previous_uS);
+}
+
+
+/*********************************************
+ * @brief CreateDMAPattern
+ * Creates the required data pattern in memory and starts DMA in a
+ * circular manner to output the required waveform.
+ * Uses File scope CurrentWaveform and Custom data as info source.
+ * @param None
+ * @retval None
+ */
+void CreateDMAPattern()
+{
+	// For now we're going to use test data and come back here for full system integration.
+
+	// Convert the custom waveform to DAC Value...
+	for(int i=0; i<CustomWaveform.us_NumPoints; i++)
+	{
+		us_DAC_Output_Values[i] = DAC_Get_Output_For_Demand(CustomWaveform.us_DataPoints[i]);
+	}
+
+	// Initialise the DMA Transfer of data to DAC output in a circular mode (output our waveform).
+	// For now simply use the custom data.
+	DAC_Init_DMA_Transfer(us_DAC_Output_Values,CustomWaveform.us_NumPoints,CurrentWaveform.ull_Period_uS);
 }
 
 

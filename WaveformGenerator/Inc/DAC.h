@@ -21,6 +21,8 @@
 /*Externally available functions */
 void DAC_Init(void);
 void DAC_Set_Output_x100(uint32_t us_New_Demand_x100);
+uint16_t DAC_Get_Output_For_Demand(uint16_t us_Required_Demand);
+uint8_t DAC_Init_DMA_Transfer(uint16_t *p_DataPoints, uint16_t ul_Num_Points, uint64_t ull_Period_us);
 
 
 #endif /* DAC_H_ */

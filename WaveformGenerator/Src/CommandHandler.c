@@ -498,7 +498,7 @@ void cmd_SetCust_Add(char *p_Data)
 	{
 	case CUST_ADD__START:
 		// Initialise to process the command....
-		p_RxDataPtr = FindCommaInString(&p_Data[CUST_ADD__INDEX_OF_START_OF_DATA]);
+		p_RxDataPtr = FindNumberInString(&p_Data[CUST_ADD__INDEX_OF_START_OF_DATA]);
 
 		// At least one data point found?
 		if(p_RxDataPtr != NULL)
