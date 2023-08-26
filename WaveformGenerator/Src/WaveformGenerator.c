@@ -29,6 +29,8 @@
 /****************************************************/
 /*Local only definitions */
 
+#define  NUM_DMA_DATA_POINTS     300
+
 /***************************/
 /* Enumerations */
 
@@ -285,17 +287,24 @@ float f_Interpolate_Over_Time(uint64_t ull_Previous_uS, float f_Previous_Reading
  */
 void CreateDMAPattern()
 {
-	// For now we're going to use test data and come back here for full system integration.
-
-	// Convert the custom waveform to DAC Value...
-	for(int i=0; i<CustomWaveform.us_NumPoints; i++)
+	// Extrapolate waveform to required number of data points needed for DMA->DAC output
+	// To do this we emulate taking the waveform computations through  a pretend cycle
+	// at 1/1000th intervals. Simulating Ticks rather than uS increments.
+	_WAVEFORM_DESCRIPTOR Waveform = WaveformGenerator_Get_Waveform();
+	Waveform.ull_Period_uS = NUM_DMA_DATA_POINTS * 1000;
+	uint64_t ull_Tick_Increment =  SysTick_MicroSeconds_to_Counts(Waveform.ull_Period_uS / NUM_DMA_DATA_POINTS);
+	int i = 0;
+	for(uint64_t ull_Timestamp = 0; ull_Timestamp < (ull_Tick_Increment * NUM_DMA_DATA_POINTS); ull_Timestamp += ull_Tick_Increment)
 	{
-		us_DAC_Output_Values[i] = DAC_Get_Output_For_Demand(CustomWaveform.us_DataPoints[i]);
+		us_DAC_Output_Values[i++] = DAC_Get_Output_For_Demand((uint32_t)(WaveformGenerator_ComputeSignal(&Waveform, ull_Timestamp)*100));
 	}
 
-	// Initialise the DMA Transfer of data to DAC output in a circular mode (output our waveform).
-	// For now simply use the custom data.
-	DAC_Init_DMA_Transfer(us_DAC_Output_Values,CustomWaveform.us_NumPoints,CurrentWaveform.ull_Period_uS);
-}
+	// Initialise the DMA Transfer of data to DAC output in a circular mode(output our waveform).
+	// For now simply use the custom data
+	DAC_Init_DMA_Transfer(us_DAC_Output_Values, NUM_DMA_DATA_POINTS,CurrentWaveform.ull_Period_uS );
+
+
+
+ }
 
 
