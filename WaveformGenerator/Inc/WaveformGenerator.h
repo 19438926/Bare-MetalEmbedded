@@ -39,7 +39,7 @@ typedef struct
 /*************************************************/
 /*Externally available functions */
 float WaveformGenerator_ComputeSignal(_WAVEFORM_DESCRIPTOR*pWave,uint64_t ull_Timestamp);
-void WaveformGenerator_Set_Waveform(_WAVEFORM_DESCRIPTOR NewWave);
+uint8_t WaveformGenerator_Set_Waveform(_WAVEFORM_DESCRIPTOR NewWave);
 _WAVEFORM_DESCRIPTOR WaveformGenerator_Get_Waveform();
 void WaveformGenerator_UpdateOutputs();
 

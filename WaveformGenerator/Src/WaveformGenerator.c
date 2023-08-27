@@ -57,7 +57,7 @@ uint16_t us_DAC_Output_Values[MAX_CUSTOM_DATA_LENGTH];
 float f_Interpolate_Over_Time( uint64_t  ull_Previous_uS, float f_Previous_Reading,
 		                       uint64_t  ull_Next_uS, float f_Next_Reading,
 							   uint64_t  ull_Return_uS);
-void CreateDMAPattern();
+uint8_t CreateDMAPattern();
 
 /*********************************************
  * @brief WaveformGenerator_UpdateOuputs
@@ -110,7 +110,7 @@ void WaveformGenerator_Clear_Custom_Data()
 	CustomWaveform.us_NumPoints = 0;
 
 	// Clear out DMA data if currently in use
-	if((CurrentWaveform.e_WaveType == eWT_Custom) && (CurrentWaveform.ull_Period_uS > MAX_FREQ_MANUALLY_OUTPUTTED_uS))
+	if((CurrentWaveform.e_WaveType == eWT_Custom) && (CurrentWaveform.ull_Period_uS < MAX_FREQ_MANUALLY_OUTPUTTED_uS))
 	{
 		// Data has  to be processed for use with DMA
 		CreateDMAPattern(); // All zero's in this instance.
@@ -137,7 +137,7 @@ uint8_t WaveformGenerator_Add_Custom_Data(uint16_t *p_Data, uint16_t us_NumData)
 		c_DataUpdated = TRUE;
 
 		// Do any further processing depending on frequency.
-		if((CurrentWaveform.e_WaveType == eWT_Custom)&& (CurrentWaveform.ull_Period_uS > MAX_FREQ_MANUALLY_OUTPUTTED_uS))
+		if((CurrentWaveform.e_WaveType == eWT_Custom)&& (CurrentWaveform.ull_Period_uS < MAX_FREQ_MANUALLY_OUTPUTTED_uS))
 		{
 			// Data has to be processed for use with DMA
 			 CreateDMAPattern();
@@ -163,10 +163,13 @@ _WAVEFORM_DESCRIPTOR WaveformGenerator_Get_Waveform()
  * @brief WaveformGenerator_Get_Waveform
  * Configures the current output to the waveform provided.
  * @param _WAVEFORM_DESCRIPTOR - waveform to output
- * @retval None
+ * @retval Check if it out of bounds
  */
-void WaveformGenerator_Set_Waveform(_WAVEFORM_DESCRIPTOR NewWave)
+uint8_t WaveformGenerator_Set_Waveform(_WAVEFORM_DESCRIPTOR NewWave)
 {
+	// Set bounds flag
+	uint8_t Bounds = TRUE;
+
 	// Copy the new waveform into our structure.
 	memcpy ((void *)&CurrentWaveform, (void*)&NewWave, sizeof(_WAVEFORM_DESCRIPTOR));
 
@@ -174,8 +177,13 @@ void WaveformGenerator_Set_Waveform(_WAVEFORM_DESCRIPTOR NewWave)
 	if (CurrentWaveform.ull_Period_uS < MAX_FREQ_MANUALLY_OUTPUTTED_uS)
 	{
 		 // Data has to be processed for use with DMA
-		CreateDMAPattern();
+		 // Check if it is out of clock counts range.
+		if( ! (CreateDMAPattern()))
+		{
+			Bounds = FALSE;
+		}
 	}
+	return Bounds;
 }
 
 /*********************************************
@@ -283,9 +291,9 @@ float f_Interpolate_Over_Time(uint64_t ull_Previous_uS, float f_Previous_Reading
  * circular manner to output the required waveform.
  * Uses File scope CurrentWaveform and Custom data as info source.
  * @param None
- * @retval None
+ * @retval uint8_t OK/Not OK to create DMA pattern
  */
-void CreateDMAPattern()
+uint8_t  CreateDMAPattern()
 {
 	// Extrapolate waveform to required number of data points needed for DMA->DAC output
 	// To do this we emulate taking the waveform computations through  a pretend cycle
@@ -301,10 +309,10 @@ void CreateDMAPattern()
 
 	// Initialise the DMA Transfer of data to DAC output in a circular mode(output our waveform).
 	// For now simply use the custom data
-	DAC_Init_DMA_Transfer(us_DAC_Output_Values, NUM_DMA_DATA_POINTS,CurrentWaveform.ull_Period_uS );
+	// Check if is ok to create DMA pattern
+	return DAC_Init_DMA_Transfer(us_DAC_Output_Values, NUM_DMA_DATA_POINTS,CurrentWaveform.ull_Period_uS );
 
 
-
- }
+}
 
 

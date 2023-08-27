@@ -33,6 +33,7 @@
 #define COMMAND_ACTIONED_RESPONSE           "ACK\r\n"
 #define MALFORMED_COMMAND_RESPONSE          "CMD_Error\r\n"
 #define COMMAND_NOT_IMPLEMENTED_YET         "NACK\r\n"
+#define NOT_POSSIBLE_RESPONSE               "Out Of Bounds! Change Frequency Or You Won't See The Waveform\r\n"
 
 #define COMMAND_RESPONSE_MAX_LENGTH         128
 
@@ -314,15 +315,19 @@ void cmd_SetFreq( char *p_Data)
 	// Get the start of the number provided
 	char *p_Num = FindNumberInString(p_Data);
 
-	if(p_Num != NULL)
-	{
+	if (p_Num != NULL) {
 		// Process number
 		_WAVEFORM_DESCRIPTOR Waveform = WaveformGenerator_Get_Waveform();
-		Waveform.ull_Period_uS = (uint64_t)(1.0/atof(p_Num)*1000000);// 1/f=period
-		WaveformGenerator_Set_Waveform(Waveform);
-
-		// Provide ack.
-		USART_Request_Tx((char *)COMMAND_ACTIONED_RESPONSE, strlen(COMMAND_ACTIONED_RESPONSE));
+		Waveform.ull_Period_uS = (uint64_t) (1.0 / atof(p_Num) * 1000000);// 1/f=period
+		if (WaveformGenerator_Set_Waveform(Waveform)) {
+			// Provide ack
+			USART_Request_Tx((char*) COMMAND_ACTIONED_RESPONSE,
+					strlen(COMMAND_ACTIONED_RESPONSE));
+		} else {
+			// Provide Our Of Bounds
+			USART_Request_Tx((char*) NOT_POSSIBLE_RESPONSE,
+					strlen(NOT_POSSIBLE_RESPONSE));
+		}
 	}
 	else
 	{
@@ -350,10 +355,18 @@ void cmd_SetPeriod(char *p_Data)
 		// Process number
 		_WAVEFORM_DESCRIPTOR Waveform = WaveformGenerator_Get_Waveform();
 		Waveform.ull_Period_uS = (uint64_t)(atof(p_Num)*1000000); //*1000000 to convert S to uS
-		WaveformGenerator_Set_Waveform(Waveform);
+		if(WaveformGenerator_Set_Waveform(Waveform))
+		{
+			// Provide ack
+			USART_Request_Tx((char *)COMMAND_ACTIONED_RESPONSE, strlen(COMMAND_ACTIONED_RESPONSE));
+		}else
+		{
+			// Provide Our Of Bounds
+			USART_Request_Tx((char*)NOT_POSSIBLE_RESPONSE,strlen(NOT_POSSIBLE_RESPONSE));
+		}
 
-		// Provide ack
-		USART_Request_Tx((char *)COMMAND_ACTIONED_RESPONSE, strlen(COMMAND_ACTIONED_RESPONSE));
+
+
 	}
 	else
 	{

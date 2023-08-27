@@ -125,7 +125,7 @@ uint16_t DAC_Get_Output_For_Demand(uint16_t us_Required_Demand)
  * @param uint16_t *p_DataPoints - pointer to the 16 bit data points
  * @param uint16_t uint16_t ul_Num_Points - Number of data points
  * @param uint64_t ull_Period_uS - Total period for waveform (all data points)
- * @retval uiny8_t Ok/Not ok.
+ * @retval uint8_t Ok/Not ok.
  */
 uint8_t DAC_Init_DMA_Transfer(uint16_t *p_DataPoints, uint16_t ul_Num_Points, uint64_t ull_Period_us)
 {
