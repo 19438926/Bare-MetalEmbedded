@@ -45,5 +45,7 @@ void WaveformGenerator_UpdateOutputs();
 
 uint8_t WaveformGenerator_Add_Custom_Data(uint16_t *p_Data,uint16_t NumData);
 void WaveformGenerator_Clear_Custom_Data();
+uint16_t WaveformGenerator_Get_CallRate(eWaveformType Type);
+uint16_t WaveformGenerator_Get_OptimumPeriod(eWaveformType Type);
 
 #endif

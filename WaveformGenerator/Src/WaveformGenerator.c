@@ -51,6 +51,10 @@ _WAVEFORM_DESCRIPTOR  CurrentWaveform;
 _CUSTOM_WAVEFORM_DATA CustomWaveform;
 
 uint16_t us_DAC_Output_Values[MAX_CUSTOM_DATA_LENGTH];
+uint32_t Accounter;
+uint32_t Counts_Per_Second;
+uint32_t Us_Per_Round;
+uint16_t MaxFreq;
 
 /**************************/
 /* Local only function prototypes */
@@ -70,10 +74,11 @@ void WaveformGenerator_UpdateOutputs()
 {
 	static uint64_t ull_TimeStamp;
 	static uint64_t ull_WaveStamp;
+	static uint64_t ull_CountStamp;
 	float f_WaveSignal;
 
 	// Check frequency requires manual outputting.
-	if(CurrentWaveform.ull_Period_uS >= MAX_FREQ_MANUALLY_OUTPUTTED_uS)
+	if(CurrentWaveform.ull_Period_uS >= WaveformGenerator_Get_OptimumPeriod(CurrentWaveform.e_WaveType))
 	{
 		//Update our timestamp
 		ull_TimeStamp = SysTick_Get_Timestamp();
@@ -87,14 +92,29 @@ void WaveformGenerator_UpdateOutputs()
 		//Set DAC Output
 		DAC_Set_Output_x100((uint32_t)(f_WaveSignal * 100));
 
-		//Set PWM Output
+		// Set PWM Output
 		PWM_Set_Duty_x10((uint16_t)(f_WaveSignal*10));
+
+		// Add count
+		Accounter++;
+
+		while(ull_TimeStamp >ull_CountStamp + SysTick_MicroSeconds_to_Counts(1000000))// Collect counts each 1 seconds
+		{
+			ull_CountStamp += SysTick_MicroSeconds_to_Counts(1000000);
+
+			Counts_Per_Second = Accounter; // Save counts
+
+			Us_Per_Round  =  ((float)1.0 / Counts_Per_Second)*1000000; // Collect us value per update
+
+			Accounter = 0; // Clear previous counts
+		}
 	}
 	else
 	{
 		// PWM Must be switched off as frequency is too high and DAC is running on DMA
 		PWM_Set_Duty_x10(0);
 	}
+
 
 }
 
@@ -110,7 +130,7 @@ void WaveformGenerator_Clear_Custom_Data()
 	CustomWaveform.us_NumPoints = 0;
 
 	// Clear out DMA data if currently in use
-	if((CurrentWaveform.e_WaveType == eWT_Custom) && (CurrentWaveform.ull_Period_uS < MAX_FREQ_MANUALLY_OUTPUTTED_uS))
+	if((CurrentWaveform.e_WaveType == eWT_Custom) && (CurrentWaveform.ull_Period_uS < WaveformGenerator_Get_OptimumPeriod(CurrentWaveform.e_WaveType)))
 	{
 		// Data has  to be processed for use with DMA
 		CreateDMAPattern(); // All zero's in this instance.
@@ -137,7 +157,7 @@ uint8_t WaveformGenerator_Add_Custom_Data(uint16_t *p_Data, uint16_t us_NumData)
 		c_DataUpdated = TRUE;
 
 		// Do any further processing depending on frequency.
-		if((CurrentWaveform.e_WaveType == eWT_Custom)&& (CurrentWaveform.ull_Period_uS < MAX_FREQ_MANUALLY_OUTPUTTED_uS))
+		if((CurrentWaveform.e_WaveType == eWT_Custom)&& (CurrentWaveform.ull_Period_uS < WaveformGenerator_Get_OptimumPeriod(CurrentWaveform.e_WaveType)))
 		{
 			// Data has to be processed for use with DMA
 			 CreateDMAPattern();
@@ -174,7 +194,7 @@ uint8_t WaveformGenerator_Set_Waveform(_WAVEFORM_DESCRIPTOR NewWave)
 	memcpy ((void *)&CurrentWaveform, (void*)&NewWave, sizeof(_WAVEFORM_DESCRIPTOR));
 
 	// Do any further processing depending on things like frequency etc.
-	if (CurrentWaveform.ull_Period_uS < MAX_FREQ_MANUALLY_OUTPUTTED_uS)
+	if (CurrentWaveform.ull_Period_uS < WaveformGenerator_Get_OptimumPeriod(CurrentWaveform.e_WaveType))
 	{
 		 // Data has to be processed for use with DMA
 		 // Check if it is out of clock counts range.
@@ -315,4 +335,50 @@ uint8_t  CreateDMAPattern()
 
 }
 
+/*********************************************
+ * @brief WaveformGenerator_Get_CallRate
+ * Configures time duration for each update. The real data was collected by Us_Per_Round
+ * @param _eWaveformType Type
+ * @retval uS call rate
+ */
+uint16_t WaveformGenerator_Get_CallRate(eWaveformType Type) {
+	uint16_t uSValue;
+	switch (Type) {
+	case 0: // Sine Wave
+		uSValue = 55;
+		break;
+	case 1: // SawTooth
+		uSValue = 19;
+		break;
+	case 2: // Triangular
+		uSValue = 21;
+		break;
+	case 3: // Square
+		uSValue = 17;
+		break;
+	case 4: // Custom
+		uSValue = 45;
+		break;
+
+	}
+	return uSValue;
+}
+
+/*********************************************
+ * @brief WaveformGenerator_Get_OptimumPeriod
+ * Configures the best period boundary between update from main loop and DMA transfer(300 Samples)
+ * @param _eWaveformType Type
+ * @retval OpPeriod
+ */
+uint16_t WaveformGenerator_Get_OptimumPeriod(eWaveformType Type)
+{
+	uint16_t OpPeriod;
+
+	// Calculate the period boundary , Less than this will use DMA, More than this use main loop because can update more samples.
+	OpPeriod = 300 * WaveformGenerator_Get_CallRate(Type);
+
+	MaxFreq = ((float) 1.0/OpPeriod) * 1000000;
+
+	return OpPeriod;
+}
 
