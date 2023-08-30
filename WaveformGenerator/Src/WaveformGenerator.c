@@ -55,6 +55,7 @@ uint32_t Accounter;
 uint32_t Counts_Per_Second;
 uint32_t Us_Per_Round;
 uint16_t MaxFreq;
+uint16_t NUM_DAC_Samples = NUM_DMA_DATA_POINTS;
 
 /**************************/
 /* Local only function prototypes */
@@ -319,10 +320,10 @@ uint8_t  CreateDMAPattern()
 	// To do this we emulate taking the waveform computations through  a pretend cycle
 	// at 1/1000th intervals. Simulating Ticks rather than uS increments.
 	_WAVEFORM_DESCRIPTOR Waveform = WaveformGenerator_Get_Waveform();
-	Waveform.ull_Period_uS = NUM_DMA_DATA_POINTS * 1000;
-	uint64_t ull_Tick_Increment =  SysTick_MicroSeconds_to_Counts(Waveform.ull_Period_uS / NUM_DMA_DATA_POINTS);
+	Waveform.ull_Period_uS = NUM_DAC_Samples * 1000;
+	uint64_t ull_Tick_Increment =  SysTick_MicroSeconds_to_Counts(Waveform.ull_Period_uS / NUM_DAC_Samples);
 	int i = 0;
-	for(uint64_t ull_Timestamp = 0; ull_Timestamp < (ull_Tick_Increment * NUM_DMA_DATA_POINTS); ull_Timestamp += ull_Tick_Increment)
+	for(uint64_t ull_Timestamp = 0; ull_Timestamp < (ull_Tick_Increment * NUM_DAC_Samples); ull_Timestamp += ull_Tick_Increment)
 	{
 		us_DAC_Output_Values[i++] = DAC_Get_Output_For_Demand((uint32_t)(WaveformGenerator_ComputeSignal(&Waveform, ull_Timestamp)*100));
 	}
@@ -330,7 +331,7 @@ uint8_t  CreateDMAPattern()
 	// Initialise the DMA Transfer of data to DAC output in a circular mode(output our waveform).
 	// For now simply use the custom data
 	// Check if is ok to create DMA pattern
-	return DAC_Init_DMA_Transfer(us_DAC_Output_Values, NUM_DMA_DATA_POINTS,CurrentWaveform.ull_Period_uS );
+	return DAC_Init_DMA_Transfer(us_DAC_Output_Values, NUM_DAC_Samples,CurrentWaveform.ull_Period_uS );
 
 
 }
@@ -375,10 +376,33 @@ uint16_t WaveformGenerator_Get_OptimumPeriod(eWaveformType Type)
 	uint16_t OpPeriod;
 
 	// Calculate the period boundary , Less than this will use DMA, More than this use main loop because can update more samples.
-	OpPeriod = 300 * WaveformGenerator_Get_CallRate(Type);
+	OpPeriod = NUM_DAC_Samples * WaveformGenerator_Get_CallRate(Type);
 
 	MaxFreq = ((float) 1.0/OpPeriod) * 1000000;
 
 	return OpPeriod;
 }
+
+/*********************************************
+ * @brief WaveformGenerator_Set_NUM_DAC_Sample
+ * Set the number of DAC samples to output when using in DMA
+ * @param uint16_t NumSample
+ * @retval None
+ */
+void WaveformGenerator_Set_NUM_DAC_Sample(uint16_t NumSample)
+{
+	 NUM_DAC_Samples = NumSample;
+}
+
+/*********************************************
+ * @brief WaveformGenerator_Get_NUM_DAC_Sample
+ * Get the number of DAC samples to output when using in DMA
+ * @param None
+ * @retval NUM_DAC_Samples
+ */
+uint16_t WaveformGenerator_Get_NUM_DAC_Sample()
+{
+	return NUM_DAC_Samples;
+}
+
 

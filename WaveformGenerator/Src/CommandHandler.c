@@ -33,7 +33,7 @@
 #define COMMAND_ACTIONED_RESPONSE           "ACK\r\n"
 #define MALFORMED_COMMAND_RESPONSE          "CMD_Error\r\n"
 #define COMMAND_NOT_IMPLEMENTED_YET         "NACK\r\n"
-#define NOT_POSSIBLE_RESPONSE               "Out Of Bounds! Change Frequency Or You Won't See The Waveform\r\n"
+#define NOT_POSSIBLE_RESPONSE               "Out Of Bounds! Change It Back\r\n"
 
 #define COMMAND_RESPONSE_MAX_LENGTH         128
 
@@ -67,12 +67,14 @@ void cmd_SetPWM(char *p_Data);
 void cmd_SetCust_Clear(char *p_Data);
 void cmd_SetCust_Add(char *p_Data);
 void cmd_SaveCust(char *p_Data);
+void cmd_SetSamples(char *p_Data);
 void cmd_GetType(char *p_Data);
 void cmd_GetFreq(char *p_Data);
 void cmd_GetPeriod(char *p_Data);
 void cmd_GetAmp(char *p_Data);
 void cmd_GetOffs(char *p_Data);
 void cmd_GetPWM(char *p_Data);
+void cmd_GetSamples(char *p_Data);
 void cmd_Help(char *p_Data);
 void cmd_HandlerUnknownCommands(char *p_Data);
 
@@ -90,6 +92,7 @@ _COMMAND_FORMAT CommandTable [] =
 		{ "Set Cust Clear", "Set Cust Clear: Clear custom data ready for adding new.\r\n",                                                          TRUE,     cmd_SetCust_Clear},
 		{ "Set Cust Add",   "Set Cust Add d1...dn: Add to Custom Waveform Data, max 1000 points (Data1...DataN Where Data 0->10000 = 0-100%)\r\n",  TRUE,     cmd_SetCust_Add },
 		{ "Save Cust",      "Save Cust: Save the current custom waveform to FLASH - to be auto restored at power on/restart up\r\n",                TRUE,     cmd_SaveCust},
+		{ "Set Samples",    "Set Samples: Set the number of DAC samples when using DMA mode\r\n",                                                   TRUE,     cmd_SetSamples},
 
 		// Specific 'Get' Command handlers
 		{ "Get Type",       "Get Type: Get Waveform Type (0=Sine, 1=Sawtooth, 2=Triangle, 3=Squre, 4=Custom)\r\n",                                  TRUE,     cmd_GetType},
@@ -98,6 +101,8 @@ _COMMAND_FORMAT CommandTable [] =
 		{ "Get Amp",        "Get Amp: Get output Amplitude (float from 0.0->1.0 = 0->100%)\r\n",                                                    TRUE,     cmd_GetAmp},
 		{ "Get Offs",       "Get Offs: Get output Offset (floatfrom 0.0->1.0 = 0->100%)\r\n",                                                       TRUE,     cmd_GetOffs},
 		{ "Get PWM",        "Get PWM: Get the PWM output frequency (not duty cycle)\r\n",                                                           TRUE,     cmd_GetPWM},
+		{ "Get Samples",     "Get Samples: Get the number of DAC samples when using DMA mode\r\n",                                                  TRUE,     cmd_GetSamples},
+
 
 		// General commands
 		{ "Help",           "Help Provide help for all messages\r\n",                                                                               TRUE,     cmd_Help},
@@ -622,6 +627,35 @@ void cmd_SaveCust(char *p_Data)
 }
 
 /*********************************************
+ * @brief cmd_SetSamples
+ * Specific command handler
+ * @param  char *p_Data - pointer to command message after unique identifier.
+ * @retval None
+ */
+void cmd_SetSamples(char *p_Data)
+{
+	// Get the start of the number provided
+	char *p_Num = FindNumberInString(p_Data);
+
+	if(p_Num != NULL && atoi(p_Num)<MAX_DAC_SAMPLE)
+	{
+		// Process number and assign PWM base frequency
+		WaveformGenerator_Set_NUM_DAC_Sample(atoi(p_Num));
+
+		// Provide ack
+		USART_Request_Tx((char *)COMMAND_ACTIONED_RESPONSE, strlen(COMMAND_ACTIONED_RESPONSE));
+	}
+	else
+	{
+			// Badly formatted command
+			USART_Request_Tx((char *)MALFORMED_COMMAND_RESPONSE, strlen(MALFORMED_COMMAND_RESPONSE));
+	}
+
+	// Declare done with this message.
+	CommandFinished();
+}
+
+/*********************************************
  * @brief cmd_GetType
  * Specific command handler
  * @param  char *p_Data - pointer to command message after unique identifier.
@@ -739,6 +773,21 @@ void cmd_GetPWM(char *p_Data)
 {
 	// Respond with current PWM Base frequency.
 	sprintf(CommandResponseBuff, "%lu\r\n", PWM_GET_Base_Frequency());
+
+	USART_Request_Tx(CommandResponseBuff, strlen(CommandResponseBuff));
+	CommandFinished();
+}
+
+/*********************************************
+ * @brief cmd_GetSamples
+ * Specific command handler
+ * @param  char *p_Data - pointer to command message after unique identifier.
+ * @retval None
+ */
+void cmd_GetSamples(char *p_Data)
+{
+	// Respond with current PWM Base frequency.
+	sprintf(CommandResponseBuff, "%u\r\n", WaveformGenerator_Get_NUM_DAC_Sample());
 
 	USART_Request_Tx(CommandResponseBuff, strlen(CommandResponseBuff));
 	CommandFinished();
