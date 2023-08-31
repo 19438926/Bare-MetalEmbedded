@@ -29,6 +29,8 @@
 /****************************************************/
 /*Local only definitions */
 
+#define  NUM_DMA_DATA_POINTS     300
+
 /***************************/
 /* Enumerations */
 
@@ -48,12 +50,19 @@ typedef struct
 _WAVEFORM_DESCRIPTOR  CurrentWaveform;
 _CUSTOM_WAVEFORM_DATA CustomWaveform;
 
+uint16_t us_DAC_Output_Values[MAX_CUSTOM_DATA_LENGTH];
+uint32_t Accounter;
+uint32_t Counts_Per_Second;
+uint32_t Us_Per_Round;
+uint16_t MaxFreq;
+uint16_t NUM_DAC_Samples = NUM_DMA_DATA_POINTS;
 
 /**************************/
 /* Local only function prototypes */
 float f_Interpolate_Over_Time( uint64_t  ull_Previous_uS, float f_Previous_Reading,
 		                       uint64_t  ull_Next_uS, float f_Next_Reading,
 							   uint64_t  ull_Return_uS);
+uint8_t CreateDMAPattern();
 
 /*********************************************
  * @brief WaveformGenerator_UpdateOuputs
@@ -66,10 +75,11 @@ void WaveformGenerator_UpdateOutputs()
 {
 	static uint64_t ull_TimeStamp;
 	static uint64_t ull_WaveStamp;
+	static uint64_t ull_CountStamp;
 	float f_WaveSignal;
 
 	// Check frequency requires manual outputting.
-	if(CurrentWaveform.ull_Period_uS >= MAX_FREQ_MANUALLY_OUTPUTTED_uS)
+	if(CurrentWaveform.ull_Period_uS >= WaveformGenerator_Get_OptimumPeriod(CurrentWaveform.e_WaveType))
 	{
 		//Update our timestamp
 		ull_TimeStamp = SysTick_Get_Timestamp();
@@ -83,14 +93,29 @@ void WaveformGenerator_UpdateOutputs()
 		//Set DAC Output
 		DAC_Set_Output_x100((uint32_t)(f_WaveSignal * 100));
 
-		//Set PWM Output
+		// Set PWM Output
 		PWM_Set_Duty_x10((uint16_t)(f_WaveSignal*10));
+
+		// Add count
+		Accounter++;
+
+		while(ull_TimeStamp >ull_CountStamp + SysTick_MicroSeconds_to_Counts(1000000))// Collect counts each 1 seconds
+		{
+			ull_CountStamp += SysTick_MicroSeconds_to_Counts(1000000);
+
+			Counts_Per_Second = Accounter; // Save counts
+
+			Us_Per_Round  =  ((float)1.0 / Counts_Per_Second)*1000000; // Collect us value per update
+
+			Accounter = 0; // Clear previous counts
+		}
 	}
 	else
 	{
 		// PWM Must be switched off as frequency is too high and DAC is running on DMA
 		PWM_Set_Duty_x10(0);
 	}
+
 
 }
 
@@ -106,10 +131,10 @@ void WaveformGenerator_Clear_Custom_Data()
 	CustomWaveform.us_NumPoints = 0;
 
 	// Clear out DMA data if currently in use
-	if((CurrentWaveform.e_WaveType == eWT_Custom) && (CurrentWaveform.ull_Period_uS > MAX_FREQ_MANUALLY_OUTPUTTED_uS))
+	if((CurrentWaveform.e_WaveType == eWT_Custom) && (CurrentWaveform.ull_Period_uS < WaveformGenerator_Get_OptimumPeriod(CurrentWaveform.e_WaveType)))
 	{
 		// Data has  to be processed for use with DMA
-		//CreateDMAPattern(); // All zero's in this instance.
+		CreateDMAPattern(); // All zero's in this instance.
 	}
 }
 
@@ -133,10 +158,10 @@ uint8_t WaveformGenerator_Add_Custom_Data(uint16_t *p_Data, uint16_t us_NumData)
 		c_DataUpdated = TRUE;
 
 		// Do any further processing depending on frequency.
-		if((CurrentWaveform.e_WaveType == eWT_Custom)&& (CurrentWaveform.ull_Period_uS > MAX_FREQ_MANUALLY_OUTPUTTED_uS))
+		if((CurrentWaveform.e_WaveType == eWT_Custom)&& (CurrentWaveform.ull_Period_uS < WaveformGenerator_Get_OptimumPeriod(CurrentWaveform.e_WaveType)))
 		{
 			// Data has to be processed for use with DMA
-			// CreateDMAPattern();
+			 CreateDMAPattern();
 		}
 	}
 	// else will naturally return false, indicating unable to add data.
@@ -159,19 +184,27 @@ _WAVEFORM_DESCRIPTOR WaveformGenerator_Get_Waveform()
  * @brief WaveformGenerator_Get_Waveform
  * Configures the current output to the waveform provided.
  * @param _WAVEFORM_DESCRIPTOR - waveform to output
- * @retval None
+ * @retval Check if it out of bounds
  */
-void WaveformGenerator_Set_Waveform(_WAVEFORM_DESCRIPTOR NewWave)
+uint8_t WaveformGenerator_Set_Waveform(_WAVEFORM_DESCRIPTOR NewWave)
 {
+	// Set bounds flag
+	uint8_t Bounds = TRUE;
+
 	// Copy the new waveform into our structure.
 	memcpy ((void *)&CurrentWaveform, (void*)&NewWave, sizeof(_WAVEFORM_DESCRIPTOR));
 
 	// Do any further processing depending on things like frequency etc.
-	if (CurrentWaveform.ull_Period_uS < MAX_FREQ_MANUALLY_OUTPUTTED_uS)
+	if (CurrentWaveform.ull_Period_uS < WaveformGenerator_Get_OptimumPeriod(CurrentWaveform.e_WaveType))
 	{
 		 // Data has to be processed for use with DMA
-		//CreateDMAPattern();
+		 // Check if it is out of clock counts range.
+		if( ! (CreateDMAPattern()))
+		{
+			Bounds = FALSE;
+		}
 	}
+	return Bounds;
 }
 
 /*********************************************
@@ -270,6 +303,106 @@ float f_Interpolate_Over_Time(uint64_t ull_Previous_uS, float f_Previous_Reading
 {
 	return f_Previous_Reading + ((f_Next_Reading - f_Previous_Reading) / (ull_Next_uS - ull_Previous_uS))*
 			                  (ull_Return_uS-ull_Previous_uS);
+}
+
+
+/*********************************************
+ * @brief CreateDMAPattern
+ * Creates the required data pattern in memory and starts DMA in a
+ * circular manner to output the required waveform.
+ * Uses File scope CurrentWaveform and Custom data as info source.
+ * @param None
+ * @retval uint8_t OK/Not OK to create DMA pattern
+ */
+uint8_t  CreateDMAPattern()
+{
+	// Extrapolate waveform to required number of data points needed for DMA->DAC output
+	// To do this we emulate taking the waveform computations through  a pretend cycle
+	// at 1/1000th intervals. Simulating Ticks rather than uS increments.
+	_WAVEFORM_DESCRIPTOR Waveform = WaveformGenerator_Get_Waveform();
+	Waveform.ull_Period_uS = NUM_DAC_Samples * 1000;
+	uint64_t ull_Tick_Increment =  SysTick_MicroSeconds_to_Counts(Waveform.ull_Period_uS / NUM_DAC_Samples);
+	int i = 0;
+	for(uint64_t ull_Timestamp = 0; ull_Timestamp < (ull_Tick_Increment * NUM_DAC_Samples); ull_Timestamp += ull_Tick_Increment)
+	{
+		us_DAC_Output_Values[i++] = DAC_Get_Output_For_Demand((uint32_t)(WaveformGenerator_ComputeSignal(&Waveform, ull_Timestamp)*100));
+	}
+
+	// Initialise the DMA Transfer of data to DAC output in a circular mode(output our waveform).
+	// For now simply use the custom data
+	// Check if is ok to create DMA pattern
+	return DAC_Init_DMA_Transfer(us_DAC_Output_Values, NUM_DAC_Samples,CurrentWaveform.ull_Period_uS );
+
+
+}
+
+/*********************************************
+ * @brief WaveformGenerator_Get_CallRate
+ * Configures time duration for each update. The real data was collected by Us_Per_Round
+ * @param _eWaveformType Type
+ * @retval uS call rate
+ */
+uint16_t WaveformGenerator_Get_CallRate(eWaveformType Type) {
+	uint16_t uSValue;
+	switch (Type) {
+	case 0: // Sine Wave
+		uSValue = 55;
+		break;
+	case 1: // SawTooth
+		uSValue = 19;
+		break;
+	case 2: // Triangular
+		uSValue = 21;
+		break;
+	case 3: // Square
+		uSValue = 17;
+		break;
+	case 4: // Custom
+		uSValue = 45;
+		break;
+
+	}
+	return uSValue;
+}
+
+/*********************************************
+ * @brief WaveformGenerator_Get_OptimumPeriod
+ * Configures the best period boundary between update from main loop and DMA transfer(300 Samples)
+ * @param _eWaveformType Type
+ * @retval OpPeriod
+ */
+uint16_t WaveformGenerator_Get_OptimumPeriod(eWaveformType Type)
+{
+	uint16_t OpPeriod;
+
+	// Calculate the period boundary , Less than this will use DMA, More than this use main loop because can update more samples.
+	OpPeriod = NUM_DAC_Samples * WaveformGenerator_Get_CallRate(Type);
+
+	MaxFreq = ((float) 1.0/OpPeriod) * 1000000;
+
+	return OpPeriod;
+}
+
+/*********************************************
+ * @brief WaveformGenerator_Set_NUM_DAC_Sample
+ * Set the number of DAC samples to output when using in DMA
+ * @param uint16_t NumSample
+ * @retval None
+ */
+void WaveformGenerator_Set_NUM_DAC_Sample(uint16_t NumSample)
+{
+	 NUM_DAC_Samples = NumSample;
+}
+
+/*********************************************
+ * @brief WaveformGenerator_Get_NUM_DAC_Sample
+ * Get the number of DAC samples to output when using in DMA
+ * @param None
+ * @retval NUM_DAC_Samples
+ */
+uint16_t WaveformGenerator_Get_NUM_DAC_Sample()
+{
+	return NUM_DAC_Samples;
 }
 
 
