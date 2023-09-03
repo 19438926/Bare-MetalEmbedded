@@ -294,11 +294,21 @@ void cmd_SetType( char *p_Data)
 			c_CommandActioned = TRUE;
 		}
 
-	if(c_CommandActioned)
+	if (c_CommandActioned)
 	{
 		// Command processed ok.
-		WaveformGenerator_Set_Waveform(Waveform);
-		USART_Request_Tx((char *)COMMAND_ACTIONED_RESPONSE, strlen(COMMAND_ACTIONED_RESPONSE));
+		if (WaveformGenerator_Set_Waveform(Waveform))
+		{
+			// Provide ack
+			USART_Request_Tx((char*) COMMAND_ACTIONED_RESPONSE,
+					strlen(COMMAND_ACTIONED_RESPONSE));
+		}
+		else
+		{
+			// Provide Our Of Bounds
+			USART_Request_Tx((char*) NOT_POSSIBLE_RESPONSE,
+					strlen(NOT_POSSIBLE_RESPONSE));
+		}
 	}
 	else
 	{
@@ -320,20 +330,24 @@ void cmd_SetFreq( char *p_Data)
 	// Get the start of the number provided
 	char *p_Num = FindNumberInString(p_Data);
 
-	if (p_Num != NULL) {
+	if (p_Num != NULL)
+	{
 		// Process number
 		_WAVEFORM_DESCRIPTOR Waveform = WaveformGenerator_Get_Waveform();
 		Waveform.ull_Period_uS = (uint64_t) (1.0 / atof(p_Num) * 1000000);// 1/f=period
-		if (WaveformGenerator_Set_Waveform(Waveform)) {
+		if (WaveformGenerator_Set_Waveform(Waveform))
+		{
 			// Provide ack
 			USART_Request_Tx((char*) COMMAND_ACTIONED_RESPONSE,
 					strlen(COMMAND_ACTIONED_RESPONSE));
-		} else {
+		} else
+		{
 			// Provide Our Of Bounds
 			USART_Request_Tx((char*) NOT_POSSIBLE_RESPONSE,
 					strlen(NOT_POSSIBLE_RESPONSE));
 		}
 	}
+
 	else
 	{
 		// Badly constructed command.
@@ -364,7 +378,8 @@ void cmd_SetPeriod(char *p_Data)
 		{
 			// Provide ack
 			USART_Request_Tx((char *)COMMAND_ACTIONED_RESPONSE, strlen(COMMAND_ACTIONED_RESPONSE));
-		}else
+		}
+		else
 		{
 			// Provide Our Of Bounds
 			USART_Request_Tx((char*)NOT_POSSIBLE_RESPONSE,strlen(NOT_POSSIBLE_RESPONSE));

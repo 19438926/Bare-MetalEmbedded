@@ -56,6 +56,8 @@ uint32_t Counts_Per_Second;
 uint32_t Us_Per_Round;
 uint16_t MaxFreq;
 uint16_t NUM_DAC_Samples = NUM_DMA_DATA_POINTS;
+uint8_t PatternFlag = FALSE;
+
 
 /**************************/
 /* Local only function prototypes */
@@ -112,6 +114,10 @@ void WaveformGenerator_UpdateOutputs()
 	}
 	else
 	{
+		if(PatternFlag == TRUE)
+		{
+			BuildDMAPattern();
+		}
 		// PWM Must be switched off as frequency is too high and DAC is running on DMA
 		PWM_Set_Duty_x10(0);
 	}
@@ -134,7 +140,7 @@ void WaveformGenerator_Clear_Custom_Data()
 	if((CurrentWaveform.e_WaveType == eWT_Custom) && (CurrentWaveform.ull_Period_uS < WaveformGenerator_Get_OptimumPeriod(CurrentWaveform.e_WaveType)))
 	{
 		// Data has  to be processed for use with DMA
-		CreateDMAPattern(); // All zero's in this instance.
+		BuildDMAPattern(); // All zero's in this instance.
 	}
 }
 
@@ -161,7 +167,7 @@ uint8_t WaveformGenerator_Add_Custom_Data(uint16_t *p_Data, uint16_t us_NumData)
 		if((CurrentWaveform.e_WaveType == eWT_Custom)&& (CurrentWaveform.ull_Period_uS < WaveformGenerator_Get_OptimumPeriod(CurrentWaveform.e_WaveType)))
 		{
 			// Data has to be processed for use with DMA
-			 CreateDMAPattern();
+			BuildDMAPattern();
 		}
 	}
 	// else will naturally return false, indicating unable to add data.
@@ -197,12 +203,21 @@ uint8_t WaveformGenerator_Set_Waveform(_WAVEFORM_DESCRIPTOR NewWave)
 	// Do any further processing depending on things like frequency etc.
 	if (CurrentWaveform.ull_Period_uS < WaveformGenerator_Get_OptimumPeriod(CurrentWaveform.e_WaveType))
 	{
-		 // Data has to be processed for use with DMA
-		 // Check if it is out of clock counts range.
-		if( ! (CreateDMAPattern()))
+		if(SYS_CLOCK_FRQ/(1.0/(((float)CurrentWaveform.ull_Period_uS / 1000000.0) / NUM_DAC_Samples)) > 128)
+		{
+		BuildDMAPattern();
+		}
+		else
 		{
 			Bounds = FALSE;
 		}
+		 // Data has to be processed for use with DMA
+		 // Check if it is out of clock counts range.
+//		if( ! (CreateDMAPattern()))
+//		{
+//			Bounds = FALSE;
+//		}
+
 	}
 	return Bounds;
 }
@@ -305,6 +320,40 @@ float f_Interpolate_Over_Time(uint64_t ull_Previous_uS, float f_Previous_Reading
 			                  (ull_Return_uS-ull_Previous_uS);
 }
 
+/*********************************************
+ * @brief BuildDMAPattern
+ * Add data points to the us_DAC_Output_Values[](20 data points per pass avoid hogging on main loop)
+ * @param None
+ * @retval None
+ */
+void BuildDMAPattern()
+{
+
+	PatternFlag = TRUE; // Start
+
+	// Extrapolate waveform to required number of data points needed for DMA->DAC output
+	// To do this we emulate taking the waveform computations through  a pretend cycle
+	// at 1/1000th intervals. Simulating Ticks rather than uS increments.
+	_WAVEFORM_DESCRIPTOR Waveform = WaveformGenerator_Get_Waveform();
+	Waveform.ull_Period_uS = NUM_DAC_Samples * 1000;
+	uint64_t ull_Tick_Increment =  SysTick_MicroSeconds_to_Counts(Waveform.ull_Period_uS / NUM_DAC_Samples);
+	static int i ;
+	static uint64_t ull_Timestamp ;
+	int index = 0;
+	while(i < NUM_DAC_Samples && index <= 20) // 20 data points per pass
+	{
+		ull_Timestamp += ull_Tick_Increment;
+		us_DAC_Output_Values[i++] = DAC_Get_Output_For_Demand((uint32_t)(WaveformGenerator_ComputeSignal(&Waveform, ull_Timestamp)*100));
+		index ++;
+	}
+	if(i == NUM_DAC_Samples )
+	{
+		CreateDMAPattern(); // Starting transmitting data
+		i = 0;
+		ull_Timestamp = 0;
+		PatternFlag = FALSE; // Ending building pattern in main loop, waiting for next call.
+	}
+}
 
 /*********************************************
  * @brief CreateDMAPattern
@@ -316,23 +365,23 @@ float f_Interpolate_Over_Time(uint64_t ull_Previous_uS, float f_Previous_Reading
  */
 uint8_t  CreateDMAPattern()
 {
-	// Extrapolate waveform to required number of data points needed for DMA->DAC output
-	// To do this we emulate taking the waveform computations through  a pretend cycle
-	// at 1/1000th intervals. Simulating Ticks rather than uS increments.
-	_WAVEFORM_DESCRIPTOR Waveform = WaveformGenerator_Get_Waveform();
-	Waveform.ull_Period_uS = NUM_DAC_Samples * 1000;
-	uint64_t ull_Tick_Increment =  SysTick_MicroSeconds_to_Counts(Waveform.ull_Period_uS / NUM_DAC_Samples);
-	int i = 0;
-	for(uint64_t ull_Timestamp = 0; ull_Timestamp < (ull_Tick_Increment * NUM_DAC_Samples); ull_Timestamp += ull_Tick_Increment)
-	{
-		us_DAC_Output_Values[i++] = DAC_Get_Output_For_Demand((uint32_t)(WaveformGenerator_ComputeSignal(&Waveform, ull_Timestamp)*100));
-	}
+//	// Extrapolate waveform to required number of data points needed for DMA->DAC output
+//	// To do this we emulate taking the waveform computations through  a pretend cycle
+//	// at 1/1000th intervals. Simulating Ticks rather than uS increments.
+//	_WAVEFORM_DESCRIPTOR Waveform = WaveformGenerator_Get_Waveform();
+//	Waveform.ull_Period_uS = NUM_DAC_Samples * 1000;
+//	uint64_t ull_Tick_Increment =  SysTick_MicroSeconds_to_Counts(Waveform.ull_Period_uS / NUM_DAC_Samples);
+//	int i = 0;
+//	for(uint64_t ull_Timestamp = 0; ull_Timestamp < (ull_Tick_Increment * NUM_DAC_Samples); ull_Timestamp += ull_Tick_Increment)
+//	{
+//		us_DAC_Output_Values[i++] = DAC_Get_Output_For_Demand((uint32_t)(WaveformGenerator_ComputeSignal(&Waveform, ull_Timestamp)*100));
+//	}
+
 
 	// Initialise the DMA Transfer of data to DAC output in a circular mode(output our waveform).
 	// For now simply use the custom data
 	// Check if is ok to create DMA pattern
 	return DAC_Init_DMA_Transfer(us_DAC_Output_Values, NUM_DAC_Samples,CurrentWaveform.ull_Period_uS );
-
 
 }
 
@@ -342,7 +391,8 @@ uint8_t  CreateDMAPattern()
  * @param _eWaveformType Type
  * @retval uS call rate
  */
-uint16_t WaveformGenerator_Get_CallRate(eWaveformType Type) {
+uint16_t WaveformGenerator_Get_CallRate(eWaveformType Type)
+{
 	uint16_t uSValue;
 	switch (Type) {
 	case 0: // Sine Wave
@@ -392,6 +442,8 @@ uint16_t WaveformGenerator_Get_OptimumPeriod(eWaveformType Type)
 void WaveformGenerator_Set_NUM_DAC_Sample(uint16_t NumSample)
 {
 	 NUM_DAC_Samples = NumSample;
+	 WaveformGenerator_Set_Waveform(CurrentWaveform);
+
 }
 
 /*********************************************

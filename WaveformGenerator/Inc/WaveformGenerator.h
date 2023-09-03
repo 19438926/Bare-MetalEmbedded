@@ -49,5 +49,6 @@ uint16_t WaveformGenerator_Get_CallRate(eWaveformType Type);
 uint16_t WaveformGenerator_Get_OptimumPeriod(eWaveformType Type);
 void WaveformGenerator_Set_NUM_DAC_Sample(uint16_t NumSample);
 uint16_t WaveformGenerator_Get_NUM_DAC_Sample();
+void BuildDMAPattern();
 
 #endif
