@@ -203,9 +203,9 @@ uint8_t WaveformGenerator_Set_Waveform(_WAVEFORM_DESCRIPTOR NewWave)
 	// Do any further processing depending on things like frequency etc.
 	if (CurrentWaveform.ull_Period_uS < WaveformGenerator_Get_OptimumPeriod(CurrentWaveform.e_WaveType))
 	{
-		if(SYS_CLOCK_FRQ/(1.0/(((float)CurrentWaveform.ull_Period_uS / 1000000.0) / NUM_DAC_Samples)) > 128)
+		if(APB1_TIMER_CLOCK_FRQ /(1.0/(((float)CurrentWaveform.ull_Period_uS / 1000000.0) / NUM_DAC_Samples)) > 128)
 		{
-		BuildDMAPattern();
+			BuildDMAPattern();
 		}
 		else
 		{
@@ -319,6 +319,7 @@ float f_Interpolate_Over_Time(uint64_t ull_Previous_uS, float f_Previous_Reading
 	return f_Previous_Reading + ((f_Next_Reading - f_Previous_Reading) / (ull_Next_uS - ull_Previous_uS))*
 			                  (ull_Return_uS-ull_Previous_uS);
 }
+#define DATA_POINTS_PROCESS_PER_PASS      20
 
 /*********************************************
  * @brief BuildDMAPattern
@@ -340,13 +341,13 @@ void BuildDMAPattern()
 	static int i ;
 	static uint64_t ull_Timestamp ;
 	int index = 0;
-	while(i < NUM_DAC_Samples && index <= 20) // 20 data points per pass
+	while(i < NUM_DAC_Samples && index <= DATA_POINTS_PROCESS_PER_PASS) // 20 data points per pass
 	{
 		ull_Timestamp += ull_Tick_Increment;
 		us_DAC_Output_Values[i++] = DAC_Get_Output_For_Demand((uint32_t)(WaveformGenerator_ComputeSignal(&Waveform, ull_Timestamp)*100));
 		index ++;
 	}
-	if(i == NUM_DAC_Samples )
+	if(i == NUM_DAC_Samples )// Trap end of the whole sequence and initiate DMA transfers, also reset static variables for next time this process is performed.
 	{
 		CreateDMAPattern(); // Starting transmitting data
 		i = 0;
@@ -396,19 +397,19 @@ uint16_t WaveformGenerator_Get_CallRate(eWaveformType Type)
 	uint16_t uSValue;
 	switch (Type) {
 	case 0: // Sine Wave
-		uSValue = 55;
+		uSValue = 23;
 		break;
 	case 1: // SawTooth
-		uSValue = 19;
+		uSValue = 8;
 		break;
 	case 2: // Triangular
-		uSValue = 21;
+		uSValue = 9;
 		break;
 	case 3: // Square
-		uSValue = 17;
+		uSValue = 7;
 		break;
 	case 4: // Custom
-		uSValue = 45;
+		uSValue = 19;
 		break;
 
 	}

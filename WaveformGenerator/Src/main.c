@@ -32,7 +32,7 @@
 
 //PLL reconfiguration definitions
 #define PLL_M     4    //bits 0-5
-#define PLL_N     72   //bits 6-14
+#define PLL_N     180   //bits 6-14
 #define PLL_P     0    //bits 16-17
 #define PLL_Q     3    //bits 24-27
 #define PLL_SRC   1    //bits 22
@@ -154,7 +154,7 @@ void Micro_Initialisation(void) {
 	SCB->CPACR |= FPU_CP10_FULL | FPU_CP11_FULL ;
 
 	//Initialise USART
-	USART_Init(961000);
+	USART_Init(2000000);
 }
 
 /***********************************************
@@ -176,15 +176,15 @@ void Initialise_External_Clock(void) {
 
 	//Configure the FLASH Pre-fetch and Latency related settings
 	FLASH->ACR |= FLASH_ACR_ICEN | FLASH_ACR_DCEN | FLASH_ACR_PRFTEN
-			| FLASH_ACR_LATENCY_2WS;
+			| FLASH_ACR_LATENCY_3WS;
 
 	//Configure the Prescalers HCLK,PCLK1 AND PCLK2
 	//AHB Prescaler
 	RCC->CFGR |= RCC_CFGR_HPRE_DIV1;
 	//APB1 Prescaler
-	RCC->CFGR |= RCC_CFGR_PPRE1_DIV2;
+	RCC->CFGR |= RCC_CFGR_PPRE1_DIV4;
 	//APB2 Prescaler
-	RCC->CFGR |= RCC_CFGR_PPRE2_DIV1;
+	RCC->CFGR |= RCC_CFGR_PPRE2_DIV2 ;
 
 	//Configure the Main PLL
 	RCC->PLLCFGR = (PLL_M << 0) | (PLL_N << 6) | (PLL_P << 16) | (PLL_Q << 24)

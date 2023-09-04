@@ -133,7 +133,7 @@ uint8_t DAC_Init_DMA_Transfer(uint16_t *p_DataPoints, uint16_t ul_Num_Points, ui
 	// First work out what frequency we need to run the timer at (time per individual sample update)
 	float f_Timer_Freq = 1.0/(((float)ull_Period_us / 1000000.0) / ul_Num_Points);
 	// With our System Clock we need to divide down to the required update rate to load into timer counter
-	int32_t sl_Clock_Count = SYS_CLOCK_FRQ / f_Timer_Freq;
+	int32_t sl_Clock_Count = APB1_TIMER_CLOCK_FRQ  / f_Timer_Freq;
 
 	// Check within bounds of the 16-bit timer
 	if((sl_Clock_Count > TIMER_MIN) && (sl_Clock_Count < TIMER_MAX))

@@ -305,7 +305,7 @@ void cmd_SetType( char *p_Data)
 		}
 		else
 		{
-			// Provide Our Of Bounds
+			// Provide Out Of Bounds
 			USART_Request_Tx((char*) NOT_POSSIBLE_RESPONSE,
 					strlen(NOT_POSSIBLE_RESPONSE));
 		}
@@ -342,7 +342,7 @@ void cmd_SetFreq( char *p_Data)
 					strlen(COMMAND_ACTIONED_RESPONSE));
 		} else
 		{
-			// Provide Our Of Bounds
+			// Provide Out Of Bounds
 			USART_Request_Tx((char*) NOT_POSSIBLE_RESPONSE,
 					strlen(NOT_POSSIBLE_RESPONSE));
 		}
@@ -381,7 +381,7 @@ void cmd_SetPeriod(char *p_Data)
 		}
 		else
 		{
-			// Provide Our Of Bounds
+			// Provide Out Of Bounds
 			USART_Request_Tx((char*)NOT_POSSIBLE_RESPONSE,strlen(NOT_POSSIBLE_RESPONSE));
 		}
 

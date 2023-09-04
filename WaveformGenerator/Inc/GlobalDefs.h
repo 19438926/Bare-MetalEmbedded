@@ -10,7 +10,9 @@
 #define GLOBALDEFS_H_
 /***************************************************/
 /* Global Definitions  */
-#define          SYS_CLOCK_FRQ       72000000
+#define          SYS_CLOCK_FRQ              180000000
+#define          APB1_TIMER_CLOCK_FRQ       90000000
+#define          APB2_CLOCK_FRQ             90000000
 
 #ifndef  FALSE
 #define  FALSE   0
