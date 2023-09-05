@@ -397,7 +397,7 @@ uint16_t WaveformGenerator_Get_CallRate(eWaveformType Type)
 	uint16_t uSValue;
 	switch (Type) {
 	case 0: // Sine Wave
-		uSValue = 23;
+		uSValue = 24;
 		break;
 	case 1: // SawTooth
 		uSValue = 8;
@@ -409,7 +409,7 @@ uint16_t WaveformGenerator_Get_CallRate(eWaveformType Type)
 		uSValue = 7;
 		break;
 	case 4: // Custom
-		uSValue = 19;
+		uSValue = 20;
 		break;
 
 	}

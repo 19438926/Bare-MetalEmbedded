@@ -176,7 +176,7 @@ void Initialise_External_Clock(void) {
 
 	//Configure the FLASH Pre-fetch and Latency related settings
 	FLASH->ACR |= FLASH_ACR_ICEN | FLASH_ACR_DCEN | FLASH_ACR_PRFTEN
-			| FLASH_ACR_LATENCY_3WS;
+			| FLASH_ACR_LATENCY_4WS;
 
 	//Configure the Prescalers HCLK,PCLK1 AND PCLK2
 	//AHB Prescaler
