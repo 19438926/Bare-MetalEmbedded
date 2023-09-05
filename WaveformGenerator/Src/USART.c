@@ -76,7 +76,7 @@ void USART_Init(uint32_t ul_BaudRate)
 	// USARTDivider = 72000000 / (8 x (2 - Over8) x BaudRate)
 	// Then take fractional part * 16 and whole parts as mantissa
 	// USART1->BRR = (Mantissa << 4) | Fractional
-	float USARTDivider = (float)SYS_CLOCK_FRQ / (8 * 2 * ul_BaudRate);
+	float USARTDivider = (float)APB2_CLOCK_FRQ / (8 * 2 * ul_BaudRate);
 	uint32_t Mantissa = floor(USARTDivider);
 	uint8_t uc_Fract = (uint8_t)((USARTDivider - Mantissa)*16);
 	USART1->BRR = (Mantissa << 4) | uc_Fract;

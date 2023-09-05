@@ -56,7 +56,7 @@ void PWM_Init(uint32_t ull_PWM_Frequency)
 
 	//Set the auto-reload value - this is the count value where it will reset to satrt of cycle.
 	//72MHz clock and we want a 100KHz PWMfrequency for instance ,so 72M / 100k =720. Note -1 as zero is an index
-	TIM2->ARR = (SYS_CLOCK_FRQ / ull_Configured_PWM_Frequency) - 1;
+	TIM2->ARR = ( APB1_TIMER_CLOCK_FRQ   / ull_Configured_PWM_Frequency) - 1;
 
 	//Set PWM Mode
 	TIM2->CCMR1 = TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1M_2;
@@ -85,7 +85,7 @@ void PWM_Init(uint32_t ull_PWM_Frequency)
 void PWM_Set_Duty_x10(uint16_t us_New_Demand_x10)
 {
 	//Calculate number of clock cycles perPWM cycle.
-	uint32_t ull_cycle_clocks = (SYS_CLOCK_FRQ / ull_Configured_PWM_Frequency) - 1;
+	uint32_t ull_cycle_clocks = ( APB1_TIMER_CLOCK_FRQ  / ull_Configured_PWM_Frequency) - 1;
 
 	//Set the required duty in clock cycles.
 	TIM2->CCR1 = (ull_cycle_clocks * us_New_Demand_x10) / 1000;
