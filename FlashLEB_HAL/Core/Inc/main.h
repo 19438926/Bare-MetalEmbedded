@@ -59,8 +59,6 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define w_DAC_Pin GPIO_PIN_4
-#define w_DAC_GPIO_Port GPIOA
 #define W_pwm_Pin GPIO_PIN_5
 #define W_pwm_GPIO_Port GPIOA
 #define GREEN_LED_Pin GPIO_PIN_13

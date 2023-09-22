@@ -54,7 +54,7 @@ uint64_t SysTick_Get_Timestamp( void )
 	//Monitor the calculation and go again if it's interrupted by the SysTick Interrupt.
 	do{
 
-	// Get the number of ticks in milliseconds
+	// Get the number of ticks in milliseconds(32 bit)
 		count = HAL_GetTick();
 
 	//Calculate the number of counts from imterrupts already

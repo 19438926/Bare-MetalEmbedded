@@ -76,10 +76,10 @@ void USART_Process(UART_HandleTypeDef *uart, DMA_HandleTypeDef *rdma,
 
 	// If there's a requirement to transmit a message, we can assume any received message is dealt with
 	// and override with the transmission.
-//	if (TransmissionRequired)
-//	{
-//		USART_State = TransmitionStart;
-//	}
+	if (TransmissionRequired)
+	{
+		USART_State = TransmitionStart;
+	}
 
 	//Action here depends on current state of port
 	switch (USART_State) {
@@ -120,9 +120,9 @@ void USART_Process(UART_HandleTypeDef *uart, DMA_HandleTypeDef *rdma,
 		}
 		// Include check for 'some bytes'
 		else if (rdma->Instance->NDTR < RX_BUFF_SIZE) {
-			if (SysTick_Elapsed_MicroSeconds(ull_Timestamp) >1000000)
+			if (SysTick_Elapsed_MicroSeconds(ull_Timestamp) >500)
 			{
-				 ull_Timestamp1 = SysTick_Elapsed_MicroSeconds(ull_Timestamp);
+				 //ull_Timestamp1 = SysTick_Elapsed_MicroSeconds(ull_Timestamp);
 				//HAL_UART_DMAStop(uart);
 				// Message reception completed.
 				USART_State = RxMsgCompleted;
@@ -133,6 +133,16 @@ void USART_Process(UART_HandleTypeDef *uart, DMA_HandleTypeDef *rdma,
 				RxData[RX_BUFF_SIZE - rdma->Instance->NDTR] = 0 ;
 			}
 		}
+		else
+		{
+			// In case of the situation where the first character is received via DMA AFTER the condition on line 107 is tested and
+			// BEFORE the condition on line 122 is tested, then we'll have a situation where the timer is 'old' and we'll assume
+			// end of message prematurely (line 123), hence also seeing a large "ull_Timestamp1" when this happens.
+			//
+			// To avoid this, keep the time-stamp to current time while there are no characters coming in.
+			ull_Timestamp = SysTick_Get_Timestamp();
+		}
+
 
 		break;
 
@@ -149,16 +159,16 @@ void USART_Process(UART_HandleTypeDef *uart, DMA_HandleTypeDef *rdma,
 		// processed it and called "USART_Clear_Rx(void)"
 
 
-		p_TxData = RxData;
-		TxDataCount =  RX_BUFF_SIZE - DMA2_Stream2->NDTR;
-		if ( TxDataCount > sizeof(RxData))
-		{
-			TxDataCount = sizeof(RxData);
-		}
-		USART_State = TransmitionStart;
-
-		// Recurse to start transmission now
-		USART_Process(uart,rdma,tdma);
+//		p_TxData = RxData;
+//		TxDataCount =  RX_BUFF_SIZE - rdma->Instance->NDTR;
+//		if ( TxDataCount > sizeof(RxData))
+//		{
+//			TxDataCount = sizeof(RxData);
+//		}
+//		USART_State = TransmitionStart;
+//
+//		// Recurse to start transmission now
+//		USART_Process(uart,rdma,tdma);
 		break;
 
 	case TransmitionStart:

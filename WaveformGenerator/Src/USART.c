@@ -437,7 +437,7 @@ void USART_Process(void)
 
 	case TransmitionStart:
 		// Trigger USART Tx via DMA...
-		Tx_Via_DMA((uint32_t)p_TxData,TxDataCount);
+		Tx_Via_DMA((uint32_t )p_TxData,TxDataCount);
 		USART_State = WaitingTransmissionEnd;
 		TransmissionRequired = FALSE;
 		break;

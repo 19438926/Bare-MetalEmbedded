@@ -23,7 +23,8 @@
 /*************************************************/
 /*Externally available functions */
 void PWM_Set_Duty_x10(uint16_t us_New_Demand_x10 , TIM_HandleTypeDef *pwm );
-uint32_t PWM_GET_Base_Frequency(TIM_HandleTypeDef  *pwm);
+uint32_t PWM_GET_Base_Frequency();
+void PWM_SET_Base_Frequency(uint32_t Base_Freq);
 
 
 #endif /* PWM_H_ */

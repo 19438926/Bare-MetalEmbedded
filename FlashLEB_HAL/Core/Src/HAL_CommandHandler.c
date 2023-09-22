@@ -33,6 +33,7 @@
 #define COMMAND_ACTIONED_RESPONSE           "ACK\r\n"
 #define MALFORMED_COMMAND_RESPONSE          "CMD_Error\r\n"
 #define COMMAND_NOT_IMPLEMENTED_YET         "NACK\r\n"
+#define NOT_POSSIBLE_RESPONSE               "Out Of Bounds! Change It Back\r\n"
 
 #define COMMAND_RESPONSE_MAX_LENGTH         128
 
@@ -64,6 +65,7 @@ void cmd_SetAmp(char *p_Data);
 void cmd_SetOffs(char *p_Data);
 void cmd_SetPWM(char *p_Data);
 void cmd_SetCust_Clear(char *p_Data);
+void cmd_SetSamples(char *p_Data);
 void cmd_SetCust_Add(char *p_Data);
 void cmd_SaveCust(char *p_Data);
 void cmd_GetType(char *p_Data);
@@ -72,6 +74,7 @@ void cmd_GetPeriod(char *p_Data);
 void cmd_GetAmp(char *p_Data);
 void cmd_GetOffs(char *p_Data);
 void cmd_GetPWM(char *p_Data);
+void cmd_GetSamples(char *p_Data);
 void cmd_Help(char *p_Data);
 void cmd_HandlerUnknownCommands(char *p_Data);
 
@@ -89,6 +92,7 @@ _COMMAND_FORMAT CommandTable [] =
 		{ "Set Cust Clear", "Set Cust Clear: Clear custom data ready for adding new.\r\n",                                                          TRUE,     cmd_SetCust_Clear},
 		{ "Set Cust Add",   "Set Cust Add d1...dn: Add to Custom Waveform Data, max 1000 points (Data1...DataN Where Data 0->10000 = 0-100%)\r\n",  TRUE,     cmd_SetCust_Add },
 		{ "Save Cust",      "Save Cust: Save the current custom waveform to FLASH - to be auto restored at power on/restart up\r\n",                TRUE,     cmd_SaveCust},
+		{ "Set Samples",    "Set Samples: Set the number of DAC samples when using DMA mode\r\n",                                                   TRUE,     cmd_SetSamples},
 
 		// Specific 'Get' Command handlers
 		{ "Get Type",       "Get Type: Get Waveform Type (0=Sine, 1=Sawtooth, 2=Triangle, 3=Squre, 4=Custom)\r\n",                                  TRUE,     cmd_GetType},
@@ -97,6 +101,7 @@ _COMMAND_FORMAT CommandTable [] =
 		{ "Get Amp",        "Get Amp: Get output Amplitude (float from 0.0->1.0 = 0->100%)\r\n",                                                    TRUE,     cmd_GetAmp},
 		{ "Get Offs",       "Get Offs: Get output Offset (floatfrom 0.0->1.0 = 0->100%)\r\n",                                                       TRUE,     cmd_GetOffs},
 		{ "Get PWM",        "Get PWM: Get the PWM output frequency (not duty cycle)\r\n",                                                           TRUE,     cmd_GetPWM},
+		{ "Get Samples",     "Get Samples: Get the number of DAC samples when using DMA mode\r\n",                                                  TRUE,     cmd_GetSamples},
 
 		// General commands
 		{ "Help",           "Help Provide help for all messages\r\n",                                                                               TRUE,     cmd_Help},
@@ -263,25 +268,25 @@ void cmd_SetType( char *p_Data)
 		Waveform.e_WaveType = eWT_Sine;
 		c_CommandActioned = TRUE;
 	}
-	else if (strncmp(&p_Data[9], "Triangle", 4) == 0)
+	else if (strncmp(&p_Data[9], "Triangle", 8) == 0)
 	{
 		// Triangle wave requested.
 		Waveform.e_WaveType = eWT_Triangular;
 		c_CommandActioned = TRUE;
 	}
-	else if(strncmp(&p_Data[9],"Sawtooth", 4) == 0)
+	else if(strncmp(&p_Data[9],"Sawtooth", 8) == 0)
 	{
 		// Sawtooth wave requested.
 		Waveform.e_WaveType = eWT_SawTooth;
 		c_CommandActioned = TRUE;
 	}
-	else if(strncmp(&p_Data[9],"Square", 4) == 0)
+	else if(strncmp(&p_Data[9],"Square", 6) == 0)
 		{
 			// Sawtooth wave requested.
 			Waveform.e_WaveType = eWT_Square;
 			c_CommandActioned = TRUE;
 		}
-	else if(strncmp(&p_Data[9],"Custom", 4) == 0)
+	else if(strncmp(&p_Data[9],"Custom", 6) == 0)
 		{
 			// Sawtooth wave requested.
 			Waveform.e_WaveType = eWT_Custom;
@@ -290,9 +295,18 @@ void cmd_SetType( char *p_Data)
 
 	if(c_CommandActioned)
 	{
-		// Command processed ok.
-		WaveformGenerator_Set_Waveform(Waveform);
-		USART_Request_Tx((char *)COMMAND_ACTIONED_RESPONSE, strlen(COMMAND_ACTIONED_RESPONSE));
+		if (WaveformGenerator_Set_Waveform(Waveform))
+		{
+			// Provide ack
+			USART_Request_Tx((char*) COMMAND_ACTIONED_RESPONSE,
+			strlen(COMMAND_ACTIONED_RESPONSE));
+		}
+		else
+		{
+			// Provide Our Of Bounds
+			USART_Request_Tx((char*) NOT_POSSIBLE_RESPONSE,
+				strlen(NOT_POSSIBLE_RESPONSE));
+		}
 	}
 	else
 	{
@@ -319,10 +333,18 @@ void cmd_SetFreq( char *p_Data)
 		// Process number
 		_WAVEFORM_DESCRIPTOR Waveform = WaveformGenerator_Get_Waveform();
 		Waveform.ull_Period_uS = (uint64_t)(1.0/atof(p_Num)*1000000);// 1/f=period
-		WaveformGenerator_Set_Waveform(Waveform);
-
-		// Provide ack.
-		USART_Request_Tx((char *)COMMAND_ACTIONED_RESPONSE, strlen(COMMAND_ACTIONED_RESPONSE));
+		if (WaveformGenerator_Set_Waveform(Waveform))
+		{
+			// Provide ack
+			USART_Request_Tx((char*) COMMAND_ACTIONED_RESPONSE,
+					strlen(COMMAND_ACTIONED_RESPONSE));
+		}
+		else
+		{
+			// Provide Our Of Bounds
+			USART_Request_Tx((char*) NOT_POSSIBLE_RESPONSE,
+					strlen(NOT_POSSIBLE_RESPONSE));
+		}
 	}
 	else
 	{
@@ -350,10 +372,16 @@ void cmd_SetPeriod(char *p_Data)
 		// Process number
 		_WAVEFORM_DESCRIPTOR Waveform = WaveformGenerator_Get_Waveform();
 		Waveform.ull_Period_uS = (uint64_t)(atof(p_Num)*1000000); //*1000000 to convert S to uS
-		WaveformGenerator_Set_Waveform(Waveform);
-
-		// Provide ack
-		USART_Request_Tx((char *)COMMAND_ACTIONED_RESPONSE, strlen(COMMAND_ACTIONED_RESPONSE));
+		if(WaveformGenerator_Set_Waveform(Waveform))
+		{
+			// Provide ack
+			USART_Request_Tx((char *)COMMAND_ACTIONED_RESPONSE, strlen(COMMAND_ACTIONED_RESPONSE));
+		}
+		else
+		{
+			// Provide Our Of Bounds
+			USART_Request_Tx((char*)NOT_POSSIBLE_RESPONSE,strlen(NOT_POSSIBLE_RESPONSE));
+		}
 	}
 	else
 	{
@@ -440,8 +468,8 @@ void cmd_SetPWM(char *p_Data)
 
 	if(p_Num != NULL)
 	{
-		// Process number and assign PWM base frequency
-		//PWM_Init(atoi(p_Num));
+		 //Process number and assign PWM base frequency
+		PWM_SET_Base_Frequency(atof(p_Num));
 
 		// Provide ack
 		USART_Request_Tx((char *)COMMAND_ACTIONED_RESPONSE, strlen(COMMAND_ACTIONED_RESPONSE));
@@ -498,7 +526,7 @@ void cmd_SetCust_Add(char *p_Data)
 	{
 	case CUST_ADD__START:
 		// Initialise to process the command....
-		p_RxDataPtr = FindCommaInString(&p_Data[CUST_ADD__INDEX_OF_START_OF_DATA]);
+		p_RxDataPtr = FindNumberInString(&p_Data[CUST_ADD__INDEX_OF_START_OF_DATA]);
 
 		// At least one data point found?
 		if(p_RxDataPtr != NULL)
@@ -605,6 +633,35 @@ void cmd_SaveCust(char *p_Data)
 {
 	// To be done later, simple NACK for now.
 	USART_Request_Tx((char *)COMMAND_NOT_IMPLEMENTED_YET, strlen(COMMAND_NOT_IMPLEMENTED_YET));
+	CommandFinished();
+}
+
+/*********************************************
+ * @brief cmd_SetSamples
+ * Specific command handler
+ * @param  char *p_Data - pointer to command message after unique identifier.
+ * @retval None
+ */
+void cmd_SetSamples(char *p_Data)
+{
+	// Get the start of the number provided
+	char *p_Num = FindNumberInString(p_Data);
+
+	if(p_Num != NULL && atoi(p_Num)<MAX_DAC_SAMPLE)
+	{
+		// Process number and assign PWM base frequency
+		WaveformGenerator_Set_NUM_DAC_Sample(atoi(p_Num));
+
+		// Provide ack
+		USART_Request_Tx((char *)COMMAND_ACTIONED_RESPONSE, strlen(COMMAND_ACTIONED_RESPONSE));
+	}
+	else
+	{
+			// Badly formatted command
+			USART_Request_Tx((char *)MALFORMED_COMMAND_RESPONSE, strlen(MALFORMED_COMMAND_RESPONSE));
+	}
+
+	// Declare done with this message.
 	CommandFinished();
 }
 
@@ -725,7 +782,22 @@ void cmd_GetOffs(char *p_Data)
 void cmd_GetPWM(char *p_Data)
 {
 	// Respond with current PWM Base frequency.
-	sprintf(CommandResponseBuff, "%lu\r\n", 11);
+	sprintf(CommandResponseBuff, "%lu\r\n", PWM_GET_Base_Frequency());
+
+	USART_Request_Tx(CommandResponseBuff, strlen(CommandResponseBuff));
+	CommandFinished();
+}
+
+/*********************************************
+ * @brief cmd_GetSamples
+ * Specific command handler
+ * @param  char *p_Data - pointer to command message after unique identifier.
+ * @retval None
+ */
+void cmd_GetSamples(char *p_Data)
+{
+	// Respond with current PWM Base frequency.
+	sprintf(CommandResponseBuff, "%u\r\n", WaveformGenerator_Get_NUM_DAC_Sample());
 
 	USART_Request_Tx(CommandResponseBuff, strlen(CommandResponseBuff));
 	CommandFinished();

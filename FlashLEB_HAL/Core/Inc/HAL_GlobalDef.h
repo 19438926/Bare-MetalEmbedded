@@ -13,6 +13,7 @@
 #define          SYS_CLOCK_FRQ              180000000
 #define          APB1_TIMER_CLOCK_FRQ       90000000
 #define          APB2_CLOCK_FRQ             90000000
+#define          MAX_DAC_SAMPLE                   1000 // Maximum number of DAC samples to be outputed by DMA.
 
 
 #ifndef  FALSE

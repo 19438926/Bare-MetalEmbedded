@@ -35,7 +35,8 @@
 
 /*********************************************/
 /* Local only variable declaration */
-
+uint8_t i = 0;
+TIM_HandleTypeDef  *Local_pwm;
 
 
 /**************************/
@@ -49,6 +50,12 @@
  */
 void PWM_Set_Duty_x10(uint16_t us_New_Demand_x10, TIM_HandleTypeDef  *pwm )
 {
+	// Set the timer address once
+	if(i==0)
+	{
+		i=1;
+		Local_pwm = pwm;
+	}
 	//Set the required duty in clock cycles.
 	__HAL_TIM_SET_COMPARE(pwm,TIM_CHANNEL_1,(pwm->Init.Period * us_New_Demand_x10) / 1000);
 
@@ -60,11 +67,21 @@ void PWM_Set_Duty_x10(uint16_t us_New_Demand_x10, TIM_HandleTypeDef  *pwm )
  * @param uint16_t us_New_Demand_x10
  * @retval None
  */
-uint32_t PWM_GET_Base_Frequency(TIM_HandleTypeDef  *pwm)
+uint32_t PWM_GET_Base_Frequency()
 {
-	return (APB1_TIMER_CLOCK_FRQ / (pwm->Init.Period+1)) ;
+	return (APB1_TIMER_CLOCK_FRQ / (Local_pwm->Init.Period+1)) ;
 }
 
+/*********************************************
+ * @brief PWM_Set_Base_Frequency
+ * Gets the current PWM base frequency.
+ * @param None
+ * @retval None
+ */
+void PWM_SET_Base_Frequency(uint32_t Base_Freq)
+{
+	Local_pwm->Instance->ARR=(APB1_TIMER_CLOCK_FRQ/Base_Freq)-1;
+}
 
 
 
