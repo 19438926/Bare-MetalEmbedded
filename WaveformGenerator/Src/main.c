@@ -259,7 +259,7 @@ void Initialise_GPIO(void) {
 	// Trigger on rising edge
 	EXTI->RTSR = EXTI_RTSR_TR0;
 	// Trigger on falling edge
-	EXTI->FTSR = EXTI_FTSR_TRSR_TR0;
+	EXTI->FTSR = EXTI_FTSR_TR0;
 	// Finally enable the interrupt
 	NVIC_EnableIRQ(EXTI0_IRQn);
 }

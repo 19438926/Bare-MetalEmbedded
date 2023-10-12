@@ -73,26 +73,26 @@ void DI_Process(void)
 {
 	// Use a pointer to save repeatedly indexing into structure array....
 	_DIGITAL_INPUT_STRUCT  *p_DigitalInput;
-	uint8_t  uc_InputPortPinState;
-
-	// Loop through all digital inputs checking for debounce period expired and saving
-	// the steady state once stabilised.
+//	uint8_t  uc_InputPortPinState;
+//
+//	// Loop through all digital inputs checking for debounce period expired and saving
+//	// the steady state once stabilised.
 	for (int i =0; i<NUM_DIGITAL_INPUTS; i++)
 	{
 		p_DigitalInput = &DigitalInput[i];
-
-		// Check for a change of live state and reset the time-stamp if found (note abbreviated if).
-		uc_InputPortPinState = (p_DigitalInput->Port->IDR & (0x01 << p_DigitalInput->uc_Pin))?  TRUE:FALSE;
-		if(uc_InputPortPinState != p_DigitalInput->uc_Live_State)
-		{
-			// Input value is different to recorded live value, update and store new time stamp.
-			p_DigitalInput->uc_Live_State = uc_InputPortPinState;
-			p_DigitalInput->ull_BounceTimestamp = SysTick_Get_Timestamp();
-			// Also set the 'active' flag
-			p_DigitalInput->uc_Active = TRUE;
-		}
-		else
-		{
+//
+//		// Check for a change of live state and reset the time-stamp if found (note abbreviated if).
+//		uc_InputPortPinState = (p_DigitalInput->Port->IDR & (0x01 << p_DigitalInput->uc_Pin))?  TRUE:FALSE;
+//		if(uc_InputPortPinState != p_DigitalInput->uc_Live_State)
+//		{
+//			// Input value is different to recorded live value, update and store new time stamp.
+//			p_DigitalInput->uc_Live_State = uc_InputPortPinState;
+//			p_DigitalInput->ull_BounceTimestamp = SysTick_Get_Timestamp();
+//			// Also set the 'active' flag
+//			p_DigitalInput->uc_Active = TRUE;
+//		}
+//		else
+//		{
 			// Live state not changing, was this input changing previously?
 			if (p_DigitalInput->uc_Active == TRUE)
 			{
@@ -104,7 +104,6 @@ void DI_Process(void)
 					p_DigitalInput->uc_Active = FALSE;
 				}
 			}
-		}
 	}
 }
 
@@ -125,4 +124,41 @@ uint8_t DI_Get_Input(eDIGITAL_INPUT e_InputRequired)
 	}
 
 	return uc_InputSteadyState;
+}
+
+/*********************************************
+ * @brief EXTI0_IRQHandler
+ * Interrupt handler for EXTI0 which we've configured for PA0 both edges.
+ * @param None
+ * @retval None
+ */
+uint32_t Debug_NumTimesIRQCalled = 0;
+void EXTI0_IRQHandler(void)
+{
+	// Clear the interrupt pending bit
+	// Here, we're only doing this for the one specific input we've enabled, but if there were several
+	// interrupts active on this port we'd use the EXTI->PR (Pending Register) to work out
+	// which particular input caused this interrupt to fire and act accordingly.
+	// So in this instance, clear the pending bit for the only interrupt we've enabled on EXTI0.
+	EXTI->PR |= (0x01 << DigitalInput[0].uc_Pin);
+
+	// Store the state, set as active and save a time-stamp for the change in state.
+	// For this demo, we're going to write the new state to all our digital inputs.
+	// Collect values.
+	_DIGITAL_INPUT_STRUCT *p_DigitalInput = &DigitalInput[0];
+	uint8_t uc_NewLiveState = (p_DigitalInput->Port->IDR & (0x01 << p_DigitalInput->uc_Pin))?  TRUE:FALSE;
+	uint64_t ull_Timestamp = SysTick_Get_Timestamp();
+
+	// Popu;ate digital input array
+	for (int i=0; i < NUM_DIGITAL_INPUTS; i++)
+	{
+		p_DigitalInput = &DigitalInput[i];
+		p_DigitalInput->uc_Live_State = uc_NewLiveState;
+		p_DigitalInput->uc_Active = TRUE;
+		p_DigitalInput->ull_BounceTimestamp = ull_Timestamp;
+	}
+
+	// Debug
+	Debug_NumTimesIRQCalled++;
+
 }
