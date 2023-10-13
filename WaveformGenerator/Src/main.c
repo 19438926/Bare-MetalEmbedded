@@ -20,6 +20,7 @@
 #include"WaveformGenerator.h"
 #include"USART.h"
 #include"CommandHandler.h"
+#include"DigitalInput.h"
 
 
 /****************************************************/
@@ -99,6 +100,21 @@ int main(void) {
 
 
 		CommandHandler_Run();
+
+		DI_Process();
+
+
+		uint8_t i = DI_Get_Input(2);
+
+		if ( i)
+		{
+			GPIOG->ODR |= 1<<13;
+		}
+		else
+		{
+			GPIOG->ODR &= 0<<13;
+		}
+
 
 //		uint64_t count = 0;0
 //		do {
@@ -238,7 +254,14 @@ void Initialise_GPIO(void) {
 	GPIOA->AFR[1] |= GPIO_AFRH_AFRH1_0 | GPIO_AFRH_AFRH1_1 | GPIO_AFRH_AFRH1_2;
 	GPIOA->AFR[1] |= GPIO_AFRH_AFRH2_0 | GPIO_AFRH_AFRH2_1 | GPIO_AFRH_AFRH2_2;
 
-
+	// Enable interrupt for pin A0 on EXTI0
+	EXTI->IMR |= EXTI_IMR_IM0;
+	// Trigger on rising edge
+	EXTI->RTSR = EXTI_RTSR_TR0;
+	// Trigger on falling edge
+	EXTI->FTSR = EXTI_FTSR_TR0;
+	// Finally enable the interrupt
+	NVIC_EnableIRQ(EXTI0_IRQn);
 }
 
 

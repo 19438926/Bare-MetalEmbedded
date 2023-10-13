@@ -35,7 +35,7 @@
 
 /*********************************************/
 /* Local only variable declaration */
-uint8_t i = 0;
+uint8_t InitDone = FALSE;
 TIM_HandleTypeDef  *Local_pwm;
 
 
@@ -51,9 +51,9 @@ TIM_HandleTypeDef  *Local_pwm;
 void PWM_Set_Duty_x10(uint16_t us_New_Demand_x10, TIM_HandleTypeDef  *pwm )
 {
 	// Set the timer address once
-	if(i==0)
+	if(!InitDone)
 	{
-		i=1;
+		InitDone = TRUE;
 		Local_pwm = pwm;
 	}
 	//Set the required duty in clock cycles.
