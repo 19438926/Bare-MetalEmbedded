@@ -65,7 +65,7 @@ osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for myTask02 */
 osThreadId_t myTask02Handle;
@@ -512,7 +512,7 @@ void StartDefaultTask(void *argument)
 		GPIOG->ODR |= 1<<14;
 		// Update outputs in case manual updates are needed.
 		WaveformGenerator_UpdateOutputs(&hdac , &htim2 , &htim4);
-		//osThreadYield();
+		osThreadYield();
 	    //osDelay(1);
 
 	}
