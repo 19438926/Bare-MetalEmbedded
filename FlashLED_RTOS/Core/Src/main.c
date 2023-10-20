@@ -512,7 +512,7 @@ void StartDefaultTask(void *argument)
 		GPIOG->ODR |= 1<<14;
 		// Update outputs in case manual updates are needed.
 		WaveformGenerator_UpdateOutputs(&hdac , &htim2 , &htim4);
-		osThreadYield();
+		//osThreadYield();
 	    //osDelay(1);
 
 	}
