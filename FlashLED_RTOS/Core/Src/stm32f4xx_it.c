@@ -248,7 +248,7 @@ void DMA2_Stream2_IRQHandler(void)
 void DMA2_Stream7_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA2_Stream7_IRQn 0 */
-
+	GPIOG->ODR |= 1<<13;
   /* USER CODE END DMA2_Stream7_IRQn 0 */
   HAL_DMA_IRQHandler(&hdma_usart1_tx);
   /* USER CODE BEGIN DMA2_Stream7_IRQn 1 */

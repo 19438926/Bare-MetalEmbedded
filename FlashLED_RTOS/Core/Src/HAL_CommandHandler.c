@@ -83,7 +83,7 @@ void cmd_HandlerUnknownCommands(char *p_Data);
 _COMMAND_FORMAT CommandTable [] =
 {
 		// Specific 'Set' Command handlers. Help String can't exceed COMMAND_RESPONSE_MAX_LENGTH in length or buffer overrun will occur with unpredictable results.
-		{ "Set Type",		"Set Type X: Set Waveform Type(X=> Sine, Sawtooth, Triangle, Squre, Custom" ,                                           TRUE,	  cmd_SetType },
+		{ "Set Type",		"Set Type X: Set Waveform Type(X=> Sine, Sawtooth, Triangle, Squre, Custom\r\n" ,                                           TRUE,	  cmd_SetType },
 		{ "Set Freq",       "Set Freq XYZ: Set output Frequency in Hz (floating point number)\r\n",                                                 TRUE,     cmd_SetFreq },
 		{ "Set Period",     "Set Period XYZ: Set output Period in Seconds (floating point number)\r\n",                                             TRUE,     cmd_SetPeriod},
 		{ "Set Amp",        "Set Amp XYZ: Set output Offser (float 0->100%)\r\n",                                                                   TRUE,     cmd_SetAmp},
@@ -510,7 +510,7 @@ void cmd_SetCust_Clear(char *p_Data)
  */
 /* Definitions used in this function for clarity...*/
 #define CUST_ADD__INDEX_OF_START_OF_DATA          12    // "Set Cust Add" - leave space to find index of first number below
-#define CUST_ADD__POINTS_TO_PROCESS_PER_PASS      10    // Number of data points to parse per pass - to avoid hogging on the main loop
+#define CUST_ADD__POINTS_TO_PROCESS_PER_PASS      5   // Number of data points to parse per pass - to avoid hogging on the main loop
 //States...
 #define CUST_ADD__START                           0
 #define CUST_ADD__PROCESSING                      1
@@ -555,9 +555,17 @@ void cmd_SetCust_Add(char *p_Data)
 		// Process up to 10 data points...
 		uint8_t uc_PointIndex = 0;
 
+		uint16_t num_by_state = CUST_ADD__POINTS_TO_PROCESS_PER_PASS;
+
+		_WAVEFORM_DESCRIPTOR wave = WaveformGenerator_Get_Waveform();
+
+		if(wave.e_WaveType == eWT_Custom)
+		{
+			num_by_state = 500;
+		}
 		// Loop processing data-points until limit per pass exceed or
 		// end of command data found
-		while((uc_PointIndex < CUST_ADD__POINTS_TO_PROCESS_PER_PASS)&&(p_RxDataPtr != NULL))
+		while((uc_PointIndex < num_by_state)&&(p_RxDataPtr != NULL))
 		{
 			// Make sure we find a number character...
 			p_RxDataPtr = FindNumberInString(p_RxDataPtr);

@@ -19,7 +19,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
-
 #include "HAL_CommandHandler.h"
 #include "HAL_DAC.h"
 #include "HAL_GlobalDef.h"
@@ -64,21 +63,21 @@ DMA_HandleTypeDef hdma_usart1_tx;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityHigh,
+  .stack_size = 2048,
+  .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for myTask02 */
 osThreadId_t myTask02Handle;
 const osThreadAttr_t myTask02_attributes = {
   .name = "myTask02",
-  .stack_size = 128 * 4,
+  .stack_size = 2048,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for CommandHandler */
 osThreadId_t CommandHandlerHandle;
 const osThreadAttr_t CommandHandler_attributes = {
   .name = "CommandHandler",
-  .stack_size = 128 * 4,
+  .stack_size = 4000,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
@@ -393,7 +392,7 @@ static void MX_TIM4_Init(void)
   {
     Error_Handler();
   }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
   {
@@ -421,7 +420,7 @@ static void MX_USART1_UART_Init(void)
 
   /* USER CODE END USART1_Init 1 */
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 115200;
+  huart1.Init.BaudRate = 9600;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
@@ -512,7 +511,7 @@ void StartDefaultTask(void *argument)
 		GPIOG->ODR |= 1<<14;
 		// Update outputs in case manual updates are needed.
 		WaveformGenerator_UpdateOutputs(&hdac , &htim2 , &htim4);
-		osThreadYield();
+		//vTaskDelay(1);
 	    //osDelay(1);
 
 	}
@@ -536,7 +535,10 @@ void StartTask02(void *argument)
 
 		//Process USART COMS
 		USART_Process(&huart1,&hdma_usart1_rx,&hdma_usart1_tx);
-		osThreadYield();
+		vTaskDelay(1*portTICK_RATE_MS);
+
+
+
 
   }
   /* USER CODE END StartTask02 */
@@ -557,7 +559,7 @@ void StartTask03(void *argument)
   {
 		// Process command
 		CommandHandler_Run();
-		osThreadYield();
+		vTaskDelay(10*portTICK_RATE_MS);
 
   }
   /* USER CODE END StartTask03 */

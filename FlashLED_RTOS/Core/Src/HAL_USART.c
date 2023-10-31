@@ -120,7 +120,7 @@ void USART_Process(UART_HandleTypeDef *uart, DMA_HandleTypeDef *rdma,
 		}
 		// Include check for 'some bytes'
 		else if (rdma->Instance->NDTR < RX_BUFF_SIZE) {
-			if (SysTick_Elapsed_MicroSeconds(ull_Timestamp) >500)
+			if (SysTick_Elapsed_MicroSeconds(ull_Timestamp) >1500)
 			{
 				 //ull_Timestamp1 = SysTick_Elapsed_MicroSeconds(ull_Timestamp);
 				//HAL_UART_DMAStop(uart);
@@ -189,7 +189,7 @@ void USART_Process(UART_HandleTypeDef *uart, DMA_HandleTypeDef *rdma,
 			// we therefore call USART1_Clear_Rx(); when finished here for now.
 			USART1_Clear_Rx();
 
-			TxDataCount = 0;
+
 
 			// And set the state back to RxIdle to go again.
 			USART_State = RxIdle;
@@ -315,4 +315,12 @@ uint8_t USART_Request_Tx(char *p_TxDataRequested , uint32_t TxDataCountRequested
 }
 
 
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+
+{
+	GPIOG->ODR &= 0<<13;
+	TxDataCount = 0;
+	asm("nop");
+
+}
 
