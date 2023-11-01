@@ -181,7 +181,7 @@ void USART_Process(UART_HandleTypeDef *uart, DMA_HandleTypeDef *rdma,
 
 	case WaitingTransmissionEnd:
 		// Has the transmission completed via interrupt?
-		if (uart->hdmatx->State == HAL_DMA_STATE_READY )
+		if (TxDataCount == 0 )
 		{
 			HAL_UART_DMAStop(uart);
 			// As there is no real processing, the processing of the incoming command is
