@@ -16,6 +16,7 @@
 #include "stm32f429xx.h"
 #include "HAL_GlobalDef.h"
 #include "stm32f4xx_hal.h"
+#include "cmsis_os.h"
 
 /****************************************************/
 /*Local only definitions */
@@ -33,6 +34,7 @@
 /*********************************************/
 /* Local only variable declaration */
 
+
 /**************************/
 /* Local only function prototypes */
 
@@ -46,7 +48,9 @@ uint64_t SysTick_Get_Timestamp( void )
 {
 	uint64_t ull_New_Count;
 	uint32_t ul_Interrupt_Flag = 0xFFFFFFFF;
-	uint64_t count;
+	static uint8_t flag;
+	static uint64_t countLT;
+
 
 	//Load the SysTick interrupt fired flag.
 	ul_Interrupt_Flag = (SysTick->CTRL & SysTick_CTRL_COUNTFLAG_Msk);
@@ -54,19 +58,30 @@ uint64_t SysTick_Get_Timestamp( void )
 	//Monitor the calculation and go again if it's interrupted by the SysTick Interrupt.
 	do{
 
+	flag = 1;
 	// Get the number of ticks in milliseconds(32 bit)
-		count = HAL_GetTick();
+	uint64_t count = HAL_GetTick();
 
-	//Calculate the number of counts from imterrupts already
+
+	//Calculate the number of counts from iterrupts already
 	ull_New_Count = (uint64_t)(count*SysTick->LOAD);
 
 	//Factor in the current count-down timer register value.
 	ull_New_Count = (uint64_t)(ull_New_Count + SysTick->LOAD - SysTick->VAL);
 
+
 	//Reload the SysTick interrupt fired flag
 	ul_Interrupt_Flag = (SysTick->CTRL & SysTick_CTRL_COUNTFLAG_Msk);
 
-	} while(ul_Interrupt_Flag != 0);
+	flag--;
+
+	if(countLT > count)
+	{
+		asm("nop");
+	}
+
+	} while((ul_Interrupt_Flag != 0) ||flag != 0);
+
 
 	return ull_New_Count;
 }
@@ -121,6 +136,7 @@ uint64_t SysTick_Period_MicroSeconds(uint64_t ull_Start_Count, uint64_t ull_Fini
 
 
 }
+
 
 /*****************/
 /* End of files */

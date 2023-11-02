@@ -19,6 +19,8 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
+#include "semphr.h"
+
 #include "HAL_CommandHandler.h"
 #include "HAL_DAC.h"
 #include "HAL_GlobalDef.h"
@@ -26,6 +28,8 @@
 #include "HAL_SysTick.h"
 #include "HAL_USART.h"
 #include "HAL_WaveformGenerator.h"
+
+
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -58,6 +62,7 @@ TIM_HandleTypeDef htim4;
 UART_HandleTypeDef huart1;
 DMA_HandleTypeDef hdma_usart1_rx;
 DMA_HandleTypeDef hdma_usart1_tx;
+uint64_t caonima;
 
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
@@ -79,6 +84,11 @@ const osThreadAttr_t CommandHandler_attributes = {
   .name = "CommandHandler",
   .stack_size = 4000,
   .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for Key */
+osSemaphoreId_t KeyHandle;
+const osSemaphoreAttr_t Key_attributes = {
+  .name = "Key"
 };
 /* USER CODE BEGIN PV */
 
@@ -164,8 +174,14 @@ int main(void)
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
 
+  /* Create the semaphores(s) */
+  /* creation of Key */
+  KeyHandle = osSemaphoreNew(1, 1, &Key_attributes);
+
+
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
+
   /* USER CODE END RTOS_SEMAPHORES */
 
   /* USER CODE BEGIN RTOS_TIMERS */
@@ -204,6 +220,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
   }
   /* USER CODE END 3 */
 }
@@ -511,6 +528,7 @@ void StartDefaultTask(void *argument)
 		GPIOG->ODR |= 1<<14;
 		// Update outputs in case manual updates are needed.
 		WaveformGenerator_UpdateOutputs(&hdac , &htim2 , &htim4);
+
 		//vTaskDelay(1);
 	    //osDelay(1);
 
@@ -535,6 +553,7 @@ void StartTask02(void *argument)
 
 		//Process USART COMS
 		USART_Process(&huart1,&hdma_usart1_rx,&hdma_usart1_tx);
+
 		vTaskDelay(1*portTICK_RATE_MS);
 
 
@@ -557,8 +576,10 @@ void StartTask03(void *argument)
   /* Infinite loop */
   for(;;)
   {
+
 		// Process command
 		CommandHandler_Run();
+
 		vTaskDelay(10*portTICK_RATE_MS);
 
   }
