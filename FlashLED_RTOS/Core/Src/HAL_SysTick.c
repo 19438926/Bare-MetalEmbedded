@@ -48,9 +48,7 @@ uint64_t SysTick_Get_Timestamp( void )
 {
 	uint64_t ull_New_Count;
 	uint32_t ul_Interrupt_Flag = 0xFFFFFFFF;
-	static uint8_t flag;
-	static uint64_t countLT;
-
+	static uint8_t OtherTaskInterruptedflag; // check if other tasks interrupt
 
 	//Load the SysTick interrupt fired flag.
 	ul_Interrupt_Flag = (SysTick->CTRL & SysTick_CTRL_COUNTFLAG_Msk);
@@ -58,7 +56,8 @@ uint64_t SysTick_Get_Timestamp( void )
 	//Monitor the calculation and go again if it's interrupted by the SysTick Interrupt.
 	do{
 
-	flag = 1;
+	OtherTaskInterruptedFlag = 1; // Original value
+
 	// Get the number of ticks in milliseconds(32 bit)
 	uint64_t count = HAL_GetTick();
 
@@ -73,14 +72,9 @@ uint64_t SysTick_Get_Timestamp( void )
 	//Reload the SysTick interrupt fired flag
 	ul_Interrupt_Flag = (SysTick->CTRL & SysTick_CTRL_COUNTFLAG_Msk);
 
-	flag--;
+	OtherTaskInterruptedFlag--; // should euqal 0 if no interrupt occurs
 
-	if(countLT > count)
-	{
-		asm("nop");
-	}
-
-	} while((ul_Interrupt_Flag != 0) ||flag != 0);
+	} while((ul_Interrupt_Flag != 0) || OtherTaskInterruptedFlag != 0);
 
 
 	return ull_New_Count;
