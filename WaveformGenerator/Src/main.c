@@ -21,7 +21,7 @@
 #include"USART.h"
 #include"CommandHandler.h"
 #include"DigitalInput.h"
-
+// hello
 
 /****************************************************/
 /*Local only definitions */
@@ -53,6 +53,9 @@
 /*********************************************/
 /* Local only variable declaration */
 _WAVEFORM_DESCRIPTOR  Waveform;
+static uint32_t test = 0;
+static volatile uint32_t test1 = 0;
+
 
 
 //uint64_t rinige;
@@ -114,6 +117,16 @@ int main(void) {
 		{
 			GPIOG->ODR &= 0<<13;
 		}
+
+
+		test1 = 0;
+		uint8_t *pByte = (uint8_t *)&test;
+		for (uint8_t i = 1; i < 7; i++)
+		{
+		*pByte = i;
+		pByte++;
+		}
+
 
 
 //		uint64_t count = 0;0
