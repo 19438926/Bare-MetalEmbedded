@@ -17,6 +17,7 @@
 #include "SysTick.h"
 #include "PWM.h"
 #include "DAC.h"
+#include "ADC.h"
 #include"WaveformGenerator.h"
 #include"USART.h"
 #include"CommandHandler.h"
@@ -119,13 +120,8 @@ int main(void) {
 		}
 
 
-		test1 = 0;
-		uint8_t *pByte = (uint8_t *)&test;
-		for (uint8_t i = 1; i < 7; i++)
-		{
-		*pByte = i;
-		pByte++;
-		}
+		//Initialise ADC
+		ADC_Run();
 
 
 
@@ -184,6 +180,8 @@ void Micro_Initialisation(void) {
 
 	//Initialise USART
 	USART_Init(2000000);
+
+
 }
 
 /***********************************************
