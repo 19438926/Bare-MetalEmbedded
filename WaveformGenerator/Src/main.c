@@ -54,7 +54,7 @@
 /*********************************************/
 /* Local only variable declaration */
 _WAVEFORM_DESCRIPTOR  Waveform;
-static uint32_t test = 0;
+
 static volatile uint32_t test1 = 0;
 
 
@@ -179,7 +179,7 @@ void Micro_Initialisation(void) {
 	SCB->CPACR |= FPU_CP10_FULL | FPU_CP11_FULL ;
 
 	//Initialise USART
-	USART_Init(2000000);
+	USART_Init(115200);
 
 
 }

@@ -419,6 +419,15 @@ void USART_Process(void)
 				RxData[RX_BUFF_SIZE - DMA2_Stream2->NDTR] = 0 ;
 			}
 		}
+		else
+		{
+			// In case of the situation where the first character is received via DMA AFTER the condition on line 107 is tested and
+			// BEFORE the condition on line 122 is tested, then we'll have a situation where the timer is 'old' and we'll assume
+			// end of message prematurely (line 123), hence also seeing a large "ull_Timestamp1" when this happens.
+			//
+			// To avoid this, keep the time-stamp to current time while there are no characters coming in.
+			ull_Timestamp = SysTick_Get_Timestamp();
+		}
 
 		break;
 
