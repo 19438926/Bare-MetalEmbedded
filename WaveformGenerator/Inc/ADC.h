@@ -28,7 +28,7 @@ typedef struct
 /*************************************************/
 /*Externally available functions */
 void ADC_Run();
-void ADC_Set_Filter(uint16_t SampleNumber);
+void ADC_Set_Filter(uint32_t SampleNumber);
 void ADC_Set_Time(uint16_t SampleTime);
 _ADC_DATA ADC_Fetch_Data ();
 void ADC_Start();

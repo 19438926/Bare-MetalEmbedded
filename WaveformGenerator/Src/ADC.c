@@ -21,6 +21,7 @@
 
 /****************************************************/
 /*Local only definitions */
+#define  NUM_OF_DATA_COLLECTING               1000
 
 /***************************/
 /* Enumerations */
@@ -197,7 +198,7 @@ void ADC_Run(void)
 
 			counter++; // Increase the counter for next data
 
-			if(counter == ADC_Number_Filter ) // Check if it has reached the number of samples
+			if(counter == NUM_OF_DATA_COLLECTING ) // Check if it has reached the number of samples
 			{
 				ADC_Sampling_Status = FALSE; // Close the loop meaning sampling finished
 
@@ -222,9 +223,9 @@ void ADC_Run(void)
  * @param SampleNumber
  * @retval None
  */
-void ADC_Set_Filter(uint16_t SampleNumber)
+void ADC_Set_Filter(uint32_t SampleNumber)
 {
-	ADC_Number_Filter = SampleNumber;
+	ul_ADC_Averaging = SampleNumber;
 }
 
 /*********************************************
@@ -302,7 +303,7 @@ uint16_t ADC_Get_Sample_Time()
 _ADC_DATA ADC_Fetch_Data()
 {
 
-	Data.s_DataLen = ADC_Number_Filter ; // Set the number of sample
+	Data.s_DataLen = NUM_OF_DATA_COLLECTING ; // Set the number of sample
 
 	Data.uS_Data = uS_Record; // Set the start address of the data for Elapsed microseconds
 

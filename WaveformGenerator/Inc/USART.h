@@ -11,6 +11,18 @@
 /***************************************************/
 /* Definitions required by this module */
 
+/***************************/
+/* Enumerations */
+typedef enum
+{
+	RxIdle = 0,
+	Receiving,
+	RxOverflow,
+	RxMsgCompleted,
+	TransmitionStart,
+	WaitingTransmissionEnd
+}eUSART_STATE;
+
 /***************************************************/
 /* Types used by this module */
 typedef struct
@@ -32,6 +44,7 @@ void USART1_IRQHandler(void);
 _Rx_DATA USART_Fetch_Rx ();
 void USART1_Clear_Rx(void);
 uint8_t USART_Request_Tx(char *p_TxDataRequested , uint32_t TxDataCountRequested);
+eUSART_STATE Get_USART_Status();
 
 
 #endif /* USART_H_ */

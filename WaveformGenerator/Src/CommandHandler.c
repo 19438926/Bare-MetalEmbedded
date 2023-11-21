@@ -939,8 +939,14 @@ void cmd_GetADCTemperature(char *p_Data)
 void cmd_GetADCStatus(char *p_Data)
 {
 	// Respond with current ADC Status.
-	sprintf(CommandResponseBuff, "%u\r\n", ADC_Get_Status());
-
+	if(ADC_Get_Status())
+	{
+		sprintf(CommandResponseBuff, "Sampling\r\n");
+	}
+	else
+	{
+		sprintf(CommandResponseBuff, "Finished\r\n");
+	}
 	USART_Request_Tx(CommandResponseBuff, strlen(CommandResponseBuff));
 	CommandFinished();
 }
@@ -986,37 +992,38 @@ void cmd_GetADCData(char *p_Data)
 	static uint16_t DataIndex; // Count the number of data sample
 
 	// Use two buffers for strings so we don't overwrite it while it's being sent out of the USART...
-	static char CommandResponseBuff1[COMMAND_RESPONSE_MAX_LENGTH];
-	static char CommandResponseBuff2[COMMAND_RESPONSE_MAX_LENGTH];
-	// Use a pointer to flip between each buffer - so we populate the one NOT currently being sent.
-	static char *pCommandResponseBuff = CommandResponseBuff1;
+//	static char CommandResponseBuff[COMMAND_RESPONSE_MAX_LENGTH];
+//	static char CommandResponseBuff2[COMMAND_RESPONSE_MAX_LENGTH];
+//	// Use a pointer to flip between each buffer - so we populate the one NOT currently being sent.
+//	static char *pCommandResponseBuff = CommandResponseBuff1;
 
-	_ADC_DATA Data = ADC_Fetch_Data(); // Get the current data details
-
-//	sprintf(CommandResponseBuff, "%lu", Data.pData[DataIndex]); // print each data
-//	sprintf(CommandResponseBuff, ",");
-	sprintf(pCommandResponseBuff, "%lu \r\n", Data.uS_Data[DataIndex]);
-
-
-	if(USART_Request_Tx(pCommandResponseBuff, strlen(pCommandResponseBuff))) // make sure the messages has been transmitted
+	if(Get_USART_Status() != WaitingTransmissionEnd)
 	{
-		DataIndex++; // increase the count
+		_ADC_DATA Data = ADC_Fetch_Data(); // Get the current data details
 
-		// Flip pointer to other buffer so we don't overwrite it while it's being transmitted...
-		if (pCommandResponseBuff == CommandResponseBuff1)
-		{
-			pCommandResponseBuff = CommandResponseBuff2;
-		}
-		else
-		{
-			pCommandResponseBuff = CommandResponseBuff1;
-		}
-	}
+		sprintf(CommandResponseBuff, "%lu , %lu\r\n", Data.uS_Data[DataIndex],Data.pData[DataIndex]);
 
-	if(DataIndex == Data.s_DataLen) // finished printing
-	{
-		 DataIndex = 0; // reset the count
-		 CommandFinished();
+
+		if(USART_Request_Tx(CommandResponseBuff, strlen(CommandResponseBuff))) // make sure the messages has been transmitted
+		{
+			DataIndex++; // increase the count
+
+//		// Flip pointer to other buffer so we don't overwrite it while it's being transmitted...
+//		if (pCommandResponseBuff == CommandResponseBuff1)
+//		{
+//			pCommandResponseBuff = CommandResponseBuff2;
+//		}
+//		else
+//		{
+//			pCommandResponseBuff = CommandResponseBuff1;
+//		}
+		}
+
+		if(DataIndex == Data.s_DataLen) // finished printing
+		{
+			DataIndex = 0; // reset the count
+			CommandFinished();
+		}
 	}
 }
 

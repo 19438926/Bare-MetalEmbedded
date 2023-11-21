@@ -31,15 +31,7 @@
 
 /***************************/
 /* Enumerations */
-typedef enum
-{
-	RxIdle = 0,
-	Receiving,
-	RxOverflow,
-	RxMsgCompleted,
-	TransmitionStart,
-	WaitingTransmissionEnd
-}eUSART_STATE;
+
 
 /**************************/
 /*Structure types */
@@ -468,5 +460,15 @@ void USART_Process(void)
 
 }
 
+/*********************************************
+ * @brief Get_USART_Status
+ * Get the UART status
+ * @param None
+ * @retval eUSART_STATE
+ */
+eUSART_STATE Get_USART_Status()
+{
+	return USART_State;
+}
 
 
