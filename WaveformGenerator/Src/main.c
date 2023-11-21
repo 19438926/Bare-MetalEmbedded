@@ -17,6 +17,7 @@
 #include "SysTick.h"
 #include "PWM.h"
 #include "DAC.h"
+#include "ADC.h"
 #include"WaveformGenerator.h"
 #include"USART.h"
 #include"CommandHandler.h"
@@ -53,7 +54,7 @@
 /*********************************************/
 /* Local only variable declaration */
 _WAVEFORM_DESCRIPTOR  Waveform;
-static uint32_t test = 0;
+
 static volatile uint32_t test1 = 0;
 
 
@@ -119,13 +120,8 @@ int main(void) {
 		}
 
 
-		test1 = 0;
-		uint8_t *pByte = (uint8_t *)&test;
-		for (uint8_t i = 1; i < 7; i++)
-		{
-		*pByte = i;
-		pByte++;
-		}
+		//Initialise ADC
+		ADC_Run();
 
 
 
@@ -183,7 +179,9 @@ void Micro_Initialisation(void) {
 	SCB->CPACR |= FPU_CP10_FULL | FPU_CP11_FULL ;
 
 	//Initialise USART
-	USART_Init(2000000);
+	USART_Init(115200);
+
+
 }
 
 /***********************************************

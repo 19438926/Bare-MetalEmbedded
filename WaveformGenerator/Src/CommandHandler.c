@@ -18,12 +18,14 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <inttypes.h>
 
 #include "GlobalDefs.h"
 #include "CommandHandler.h"
 #include "USART.h"
 #include "PWM.h"
 #include "WaveformGenerator.h"
+#include "ADC.h"
 
 
 /****************************************************/
@@ -68,6 +70,9 @@ void cmd_SetCust_Clear(char *p_Data);
 void cmd_SetCust_Add(char *p_Data);
 void cmd_SaveCust(char *p_Data);
 void cmd_SetSamples(char *p_Data);
+void cmd_SetADCFilter(char *p_Data);
+void cmd_SetADCSampleTime(char *p_Data);
+void cmd_SetADCStart(char *p_Data);
 void cmd_GetType(char *p_Data);
 void cmd_GetFreq(char *p_Data);
 void cmd_GetPeriod(char *p_Data);
@@ -75,6 +80,11 @@ void cmd_GetAmp(char *p_Data);
 void cmd_GetOffs(char *p_Data);
 void cmd_GetPWM(char *p_Data);
 void cmd_GetSamples(char *p_Data);
+void cmd_GetADCTemperature(char *p_Data);
+void cmd_GetADCStatus(char *p_Data);
+void cmd_GetADCSingleReading(char *p_Data);
+void cmd_GetADCSampleTime(char *p_Data);
+void cmd_GetADCData(char *p_Data);
 void cmd_Help(char *p_Data);
 void cmd_HandlerUnknownCommands(char *p_Data);
 
@@ -83,26 +93,33 @@ void cmd_HandlerUnknownCommands(char *p_Data);
 _COMMAND_FORMAT CommandTable [] =
 {
 		// Specific 'Set' Command handlers. Help String can't exceed COMMAND_RESPONSE_MAX_LENGTH in length or buffer overrun will occur with unpredictable results.
-		{ "Set Type",		"Set Type X: Set Waveform Type(X=> Sine, Sawtooth, Triangle, Squre, Custom" ,                                           TRUE,	  cmd_SetType },
-		{ "Set Freq",       "Set Freq XYZ: Set output Frequency in Hz (floating point number)\r\n",                                                 TRUE,     cmd_SetFreq },
-		{ "Set Period",     "Set Period XYZ: Set output Period in Seconds (floating point number)\r\n",                                             TRUE,     cmd_SetPeriod},
-		{ "Set Amp",        "Set Amp XYZ: Set output Offser (float 0->100%)\r\n",                                                                   TRUE,     cmd_SetAmp},
-		{ "Set Offs",       "Set Offs XYZ: Set output Offset(float 0->100%)\r\n",                                                                   TRUE,     cmd_SetOffs},
-		{ "Set PWM",        "Set PWM XYZ: Set the PWM output frequency (not duty cycle)\r\n",                                                       TRUE,     cmd_SetPWM},
-		{ "Set Cust Clear", "Set Cust Clear: Clear custom data ready for adding new.\r\n",                                                          TRUE,     cmd_SetCust_Clear},
-		{ "Set Cust Add",   "Set Cust Add d1...dn: Add to Custom Waveform Data, max 1000 points (Data1...DataN Where Data 0->10000 = 0-100%)\r\n",  TRUE,     cmd_SetCust_Add },
-		{ "Save Cust",      "Save Cust: Save the current custom waveform to FLASH - to be auto restored at power on/restart up\r\n",                TRUE,     cmd_SaveCust},
-		{ "Set Samples",    "Set Samples: Set the number of DAC samples when using DMA mode\r\n",                                                   TRUE,     cmd_SetSamples},
+		{ "Set Type",		     	"Set Type X: Set Waveform Type(X=> Sine, Sawtooth, Triangle, Squre, Custom\r\n" ,                                           TRUE,	  cmd_SetType },
+		{ "Set Freq",         		"Set Freq XYZ: Set output Frequency in Hz (floating point number)\r\n",                                                 TRUE,     cmd_SetFreq },
+		{ "Set Period",    		 	"Set Period XYZ: Set output Period in Seconds (floating point number)\r\n",                                             TRUE,     cmd_SetPeriod},
+		{ "Set Amp",        		"Set Amp XYZ: Set output Offser (float 0->100%)\r\n",                                                                   TRUE,     cmd_SetAmp},
+		{ "Set Offs",       		"Set Offs XYZ: Set output Offset(float 0->100%)\r\n",                                                                   TRUE,     cmd_SetOffs},
+		{ "Set PWM",        		"Set PWM XYZ: Set the PWM output frequency (not duty cycle)\r\n",                                                       TRUE,     cmd_SetPWM},
+		{ "Set Cust Clear", 		"Set Cust Clear: Clear custom data ready for adding new.\r\n",                                                          TRUE,     cmd_SetCust_Clear},
+		{ "Set Cust Add",   		"Set Cust Add d1...dn: Add to Custom Waveform Data, max 1000 points (Data1...DataN Where Data 0->10000 = 0-100%)\r\n",  TRUE,     cmd_SetCust_Add },
+		{ "Save Cust",      		"Save Cust: Save the current custom waveform to FLASH - to be auto restored at power on/restart up\r\n",                TRUE,     cmd_SaveCust},
+		{ "Set Samples",    		"Set Samples: Set the number of DAC samples when using DMA mode\r\n",                                                   TRUE,     cmd_SetSamples},
+		{ "Set ADC Filter", 		"Set ADC Filter: Set the number of samples to 'average'.\r\n",                                                          TRUE,     cmd_SetADCFilter},
+		{ "Set ADC Sample Time",    "Set ADC Sample Time: Set the number of uS between samples\r\n",                                                        TRUE,     cmd_SetADCSampleTime},
+		{ "Set ADC Start",    		"Set ADC Start: Start the ADC sampler\r\n",                                                                             TRUE,     cmd_SetADCStart},
 
 		// Specific 'Get' Command handlers
-		{ "Get Type",       "Get Type: Get Waveform Type (0=Sine, 1=Sawtooth, 2=Triangle, 3=Squre, 4=Custom)\r\n",                                  TRUE,     cmd_GetType},
-		{ "Get Freq",       "Get Freq: Get output Frequency inHz (floating point number)\r\n",                                                      TRUE,     cmd_GetFreq},
-		{ "Get Period",     "Get Period: Get output Period in Seconds (floating point number)\r\n",                                                 TRUE,     cmd_GetPeriod},
-		{ "Get Amp",        "Get Amp: Get output Amplitude (float from 0.0->1.0 = 0->100%)\r\n",                                                    TRUE,     cmd_GetAmp},
-		{ "Get Offs",       "Get Offs: Get output Offset (floatfrom 0.0->1.0 = 0->100%)\r\n",                                                       TRUE,     cmd_GetOffs},
-		{ "Get PWM",        "Get PWM: Get the PWM output frequency (not duty cycle)\r\n",                                                           TRUE,     cmd_GetPWM},
-		{ "Get Samples",     "Get Samples: Get the number of DAC samples when using DMA mode\r\n",                                                  TRUE,     cmd_GetSamples},
-
+		{ "Get Type",       		"Get Type: Get Waveform Type (0=Sine, 1=Sawtooth, 2=Triangle, 3=Squre, 4=Custom)\r\n",                                  TRUE,     cmd_GetType},
+		{ "Get Freq",       		"Get Freq: Get output Frequency inHz (floating point number)\r\n",                                                      TRUE,     cmd_GetFreq},
+		{ "Get Period",     		"Get Period: Get output Period in Seconds (floating point number)\r\n",                                                 TRUE,     cmd_GetPeriod},
+		{ "Get Amp",        		"Get Amp: Get output Amplitude (float from 0.0->1.0 = 0->100%)\r\n",                                                    TRUE,     cmd_GetAmp},
+		{ "Get Offs",       		"Get Offs: Get output Offset (floatfrom 0.0->1.0 = 0->100%)\r\n",                                                       TRUE,     cmd_GetOffs},
+		{ "Get PWM",        		"Get PWM: Get the PWM output frequency (not duty cycle)\r\n",                                                           TRUE,     cmd_GetPWM},
+		{ "Get Samples",     		"Get Samples: Get the number of DAC samples when using DMA mode\r\n",                                                   TRUE,     cmd_GetSamples},
+		{ "Get ADC Temperature",    "Get ADC Temperature: Get the Micro Temperature via ADC\r\n",                                                           TRUE,     cmd_GetADCTemperature},
+		{ "Get ADC Status",     	"Get ADC Status: Get the status of the ADC sampling(Sampling/Finished)\r\n",                                            TRUE,     cmd_GetADCStatus},
+		{ "Get ADC Single Reading", "Get ADC Single Reading: Get the current ADC input value.\r\n",                                                         TRUE,     cmd_GetADCSingleReading},
+		{ "Get ADC Sample Time",    "Get ADC Sample Time: Get the current ADC sampling rate(uS between readings)\r\n",                                      TRUE,     cmd_GetADCSampleTime},
+		{ "Get ADC Data",     		"Get ADC Data: Get the data acquired by the ADC sampler\r\n",                                                           TRUE,     cmd_GetADCData},
 
 		// General commands
 		{ "Help",           "Help Provide help for all messages\r\n",                                                                               TRUE,     cmd_Help},
@@ -670,6 +687,96 @@ void cmd_SetSamples(char *p_Data)
 	CommandFinished();
 }
 
+
+/*********************************************
+ * @brief cmd_SetADCFilter
+ * Specific command handler
+ * @param  char *p_Data - pointer to command message after unique identifier.
+ * @retval None
+ */
+void cmd_SetADCFilter(char *p_Data)
+{
+	// Get the start of the number provided
+	char *p_Num = FindNumberInString(p_Data);
+
+	if(p_Num != NULL)
+	{
+		// Set the number of ADC Samples
+		ADC_Set_Filter(atoi(p_Num));
+
+		// Provide ack
+		USART_Request_Tx((char *)COMMAND_ACTIONED_RESPONSE, strlen(COMMAND_ACTIONED_RESPONSE));
+	}
+	else
+	{
+			// Badly formatted command
+			USART_Request_Tx((char *)MALFORMED_COMMAND_RESPONSE, strlen(MALFORMED_COMMAND_RESPONSE));
+	}
+
+	// Declare done with this message.
+	CommandFinished();
+}
+
+/*********************************************
+ * @brief cmd_SetADCSampleTime
+ * Specific command handler
+ * @param  char *p_Data - pointer to command message after unique identifier.
+ * @retval None
+ */
+void cmd_SetADCSampleTime(char *p_Data)
+{
+	// Get the start of the number provided
+	char *p_Num = FindNumberInString(p_Data);
+
+	if(p_Num != NULL)
+	{
+		// Set the number of uS
+		ADC_Set_Time(atoi(p_Num));
+
+
+		// Provide ack
+		USART_Request_Tx((char *)COMMAND_ACTIONED_RESPONSE, strlen(COMMAND_ACTIONED_RESPONSE));
+	}
+	else
+	{
+			// Badly formatted command
+			USART_Request_Tx((char *)MALFORMED_COMMAND_RESPONSE, strlen(MALFORMED_COMMAND_RESPONSE));
+	}
+
+	// Declare done with this message.
+	CommandFinished();
+}
+
+/*********************************************
+ * @brief cmd_SetADCStart
+ * Specific command handler
+ * @param  char *p_Data - pointer to command message after unique identifier.
+ * @retval None
+ */
+void cmd_SetADCStart(char *p_Data)
+{
+	// Get the start of the number provided
+	char *p_Num = FindNumberInString(p_Data);
+
+	if(p_Num == NULL)
+	{
+		// Start ADC sampling
+		ADC_Start();
+
+
+		// Provide ack
+		USART_Request_Tx((char *)COMMAND_ACTIONED_RESPONSE, strlen(COMMAND_ACTIONED_RESPONSE));
+	}
+	else
+	{
+			// Badly formatted command
+			USART_Request_Tx((char *)MALFORMED_COMMAND_RESPONSE, strlen(MALFORMED_COMMAND_RESPONSE));
+	}
+
+	// Declare done with this message.
+	CommandFinished();
+}
+
 /*********************************************
  * @brief cmd_GetType
  * Specific command handler
@@ -801,11 +908,123 @@ void cmd_GetPWM(char *p_Data)
  */
 void cmd_GetSamples(char *p_Data)
 {
-	// Respond with current PWM Base frequency.
+	// Respond with current Samples.
 	sprintf(CommandResponseBuff, "%u\r\n", WaveformGenerator_Get_NUM_DAC_Sample());
 
 	USART_Request_Tx(CommandResponseBuff, strlen(CommandResponseBuff));
 	CommandFinished();
+}
+
+/*********************************************
+ * @brief cmd_GetADCTemperature
+ * Specific command handler
+ * @param  char *p_Data - pointer to command message after unique identifier.
+ * @retval None
+ */
+void cmd_GetADCTemperature(char *p_Data)
+{
+	// Respond with current ADC Temperature.
+	sprintf(CommandResponseBuff, "%lu\r\n", ADC_Get_Temperature());
+
+	USART_Request_Tx(CommandResponseBuff, strlen(CommandResponseBuff));
+	CommandFinished();
+}
+
+/*********************************************
+ * @brief cmd_GetADCStatus
+ * Specific command handler
+ * @param  char *p_Data - pointer to command message after unique identifier.
+ * @retval None
+ */
+void cmd_GetADCStatus(char *p_Data)
+{
+	// Respond with current ADC Status.
+	if(ADC_Get_Status())
+	{
+		sprintf(CommandResponseBuff, "Sampling\r\n");
+	}
+	else
+	{
+		sprintf(CommandResponseBuff, "Finished\r\n");
+	}
+	USART_Request_Tx(CommandResponseBuff, strlen(CommandResponseBuff));
+	CommandFinished();
+}
+
+/*********************************************
+ * @brief cmd_GetADCSingleReading
+ * Specific command handler
+ * @param  char *p_Data - pointer to command message after unique identifier.
+ * @retval None
+ */
+void cmd_GetADCSingleReading(char *p_Data)
+{
+	// Respond with current ADC Single Reading.
+	sprintf(CommandResponseBuff, "%lu\r\n", ADC_Get_Reading());
+
+	USART_Request_Tx(CommandResponseBuff, strlen(CommandResponseBuff));
+	CommandFinished();
+}
+
+/*********************************************
+ * @brief cmd_GetADCSampleTime
+ * Specific command handler
+ * @param  char *p_Data - pointer to command message after unique identifier.
+ * @retval None
+ */
+void cmd_GetADCSampleTime(char *p_Data)
+{
+	// Respond with current ADC Sample Time
+	sprintf(CommandResponseBuff, "%u\r\n", ADC_Get_Sample_Time());
+
+	USART_Request_Tx(CommandResponseBuff, strlen(CommandResponseBuff));
+	CommandFinished();
+}
+
+/*********************************************
+ * @brief cmd_GetADCData
+ * Specific command handler
+ * @param  char *p_Data - pointer to command message after unique identifier.
+ * @retval None
+ */
+void cmd_GetADCData(char *p_Data)
+{
+	static uint16_t DataIndex; // Count the number of data sample
+
+	// Use two buffers for strings so we don't overwrite it while it's being sent out of the USART...
+//	static char CommandResponseBuff[COMMAND_RESPONSE_MAX_LENGTH];
+//	static char CommandResponseBuff2[COMMAND_RESPONSE_MAX_LENGTH];
+//	// Use a pointer to flip between each buffer - so we populate the one NOT currently being sent.
+//	static char *pCommandResponseBuff = CommandResponseBuff1;
+
+	if(Get_USART_Status() != WaitingTransmissionEnd)
+	{
+		_ADC_DATA Data = ADC_Fetch_Data(); // Get the current data details
+
+		sprintf(CommandResponseBuff, "%lu , %lu\r\n", Data.uS_Data[DataIndex],Data.pData[DataIndex]);
+
+
+		if(USART_Request_Tx(CommandResponseBuff, strlen(CommandResponseBuff))) // make sure the messages has been transmitted
+		{
+			DataIndex++; // increase the count
+
+//		// Flip pointer to other buffer so we don't overwrite it while it's being transmitted...
+//		if (pCommandResponseBuff == CommandResponseBuff1)
+//		{
+//			pCommandResponseBuff = CommandResponseBuff2;
+//		}
+//		else
+//		{
+//			pCommandResponseBuff = CommandResponseBuff1;
+//		}
+		}
+
+		if(DataIndex == Data.s_DataLen) // finished printing
+		{
+			DataIndex = 0; // reset the count
+			CommandFinished();
+		}
+	}
 }
 
 /*********************************************
