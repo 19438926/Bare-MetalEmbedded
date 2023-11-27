@@ -23,6 +23,9 @@
 /*Local only definitions */
 #define  NUM_OF_DATA_COLLECTING               1000
 
+#define TIMER_MIN         0x0080
+#define TIMER_MAX         0xFFFF
+
 /***************************/
 /* Enumerations */
 
@@ -49,8 +52,12 @@ uint8_t  ADC_Sampling_Status = FALSE;
 static uint16_t counter;
 uint32_t uS_Record[1000];
 uint32_t Data_Record[1000];
+uint64_t time_measure;
+uint64_t timestamp1;
 
 _ADC_DATA Data;
+
+uint8_t  uc_ADC_Under_DMA_Control = TRUE;
 
 /**************************/
 /* Local only function prototypes */
@@ -113,17 +120,14 @@ void ADC_Init(void)
 	// Configure what channel's to be read: IN4
 	ADC3->SQR3 |= ADC_SQR3_SQ1_2;
 
-	// Set sample time - as slow as possible(480 cycles).
-	ADC3->SMPR2 |= ADC_SMPR2_SMP4_0 | ADC_SMPR2_SMP4_1 | ADC_SMPR2_SMP4_2;
+//	// Set sample time - as slow as possible(480 cycles).
+//	ADC3->SMPR2 |= ADC_SMPR2_SMP4_0 | ADC_SMPR2_SMP4_1 | ADC_SMPR2_SMP4_2;
 
-	// Set for continuous readings
-	ADC3->CR2 |= ADC_CR2_CONT;
-
-	// Start the ADC
-	ADC3->CR2 |= ADC_CR2_ADON;
-
-	// Trigger initial conversion
-	ADC3->CR2 |= ADC_CR2_SWSTART;
+//	// Start the ADC
+//	ADC3->CR2 |= ADC_CR2_ADON;
+//
+//	// Trigger initial conversion
+//	ADC3->CR2 |= ADC_CR2_SWSTART;
 }
 
 /*********************************************
@@ -174,6 +178,26 @@ void ADC_Run(void)
 		FilteredTemperature += ((RawTemperature - FilteredTemperature)*0.0001); // Average over 10000 readings.
 	}
 
+	if(uc_ADC_Under_DMA_Control)// Manage the continuous reading at beginning and after DMA mode.
+	{
+		// Clear the past relevant DMA setting.
+		ADC3->CR2 = 0;
+
+		// Set sample time - as slow as possible(480 cycles).
+		ADC3->SMPR2 |= ADC_SMPR2_SMP4_0 | ADC_SMPR2_SMP4_1 | ADC_SMPR2_SMP4_2;
+
+		// Set ADC to be continuous reading mode.
+		ADC3->CR2 |= ADC_CR2_CONT;
+
+		// Start the ADC
+		ADC3->CR2 |= ADC_CR2_ADON;
+
+		// Trigger initial conversion
+		ADC3->CR2 |= ADC_CR2_SWSTART;
+
+		uc_ADC_Under_DMA_Control = FALSE; // finish setting and will not come here before another DMA have happened
+	}
+
 	// Has the Analogue input conversion completed?
 	if (ADC3->SR & ADC_SR_EOC)
 	{
@@ -187,25 +211,33 @@ void ADC_Run(void)
 	//Sample mode for application
 	if(ADC_Sampling_Status)
 	{
-
-		while(SysTick_Elapsed_MicroSeconds(TimeStamp)>ADC_Sample_Time) // Check if it exceeded the setting time.
+		if(ADC_Sample_Time >= 30)
 		{
-			TimeStamp = SysTick_Get_Timestamp();  // Update TimeStamp
 
-			uS_Record[counter] = SysTick_Elapsed_MicroSeconds(TimeStampRecord); // Record number of elapsed microseconds.
-
-			Data_Record[counter] = ADC_Analogue_Value; // Record the ADC value according to the elapsed microsecond.
-
-			counter++; // Increase the counter for next data
-
-			if(counter == NUM_OF_DATA_COLLECTING ) // Check if it has reached the number of samples
+			while(SysTick_Elapsed_MicroSeconds(TimeStamp)>ADC_Sample_Time) // Check if it exceeded the setting time.
 			{
-				ADC_Sampling_Status = FALSE; // Close the loop meaning sampling finished
+				TimeStamp = SysTick_Get_Timestamp();  // Update TimeStamp
 
-				counter = 0; // Reset the counter for next getdata command
+				uS_Record[counter] = SysTick_Elapsed_MicroSeconds(TimeStampRecord); // Record number of elapsed microseconds.
+
+				Data_Record[counter] = ADC_Analogue_Value; // Record the ADC value according to the elapsed microsecond.
+
+				counter++; // Increase the counter for next data
+
+				if(counter == NUM_OF_DATA_COLLECTING ) // Check if it has reached the number of samples
+				{
+					ADC_Sampling_Status = FALSE; // Close the loop meaning sampling finished
+
+					counter = 0; // Reset the counter for next getdata command
+				}
 			}
 		}
+		else // Use DMA for faster collecting
+		{
+			ADC_Init_DMA_Transfer(Data_Record, NUM_OF_DATA_COLLECTING, ADC_Sample_Time);// Configure DMA ,TIMER,ADC and restart
 
+			ADC_Sampling_Status = FALSE; // Set the status to avoid run DMA again
+		}
 	}
 	else
 	{
@@ -215,7 +247,6 @@ void ADC_Run(void)
 	}
 
 }
-
 
 /*********************************************
  * @brief ADC_Set_Filter
@@ -313,5 +344,117 @@ _ADC_DATA ADC_Fetch_Data()
 	return Data;
 }
 
+/*********************************************
+ * @brief ADC_Init_DMA_Transfer
+ * Initiates DMA transfer (in normal mode) of data from
+ * the ADC at the required  rate to RAM
+ * Note: The ADC triggers the DMA transfer when the Timer expires.
+ * @param uint16_t *p_DataPoints - pointer to the 32 bit data points
+ * @param uint16_t uint16_t ul_Num_Points - Number of data points
+ * @param uint64_t ull_Required_uS
+ * @retval uint8_t Ok/Not ok.
+ */
+uint8_t ADC_Init_DMA_Transfer(uint32_t *p_DataPoints, uint16_t ul_Num_Points, uint32_t ull_Required_us)
+{
+	uint8_t Success = FALSE;
+
+	// With our System Clock we need to divide down to the required update rate to load into timer counter
+	int32_t sl_Clock_Count = (APB1_TIMER_CLOCK_FRQ / 1000000)  * ull_Required_us ;
+
+	// Check within bounds of the 16-bit timer
+	if((sl_Clock_Count > TIMER_MIN) && (sl_Clock_Count < TIMER_MAX))
+	{
+		// Ok to continue+
+		Success = TRUE;
+
+		// Clear relevant ADC setting before configuring DMA
+		ADC3->CR2 = 0; ADC3->SMPR2 = 0;
+
+		// Configure DMA channel / stream required.
+		// Disable DMA2 Stream 1 while we configure it.
+		DMA2_Stream1->CR &= ~DMA_SxCR_EN;
+		// Wait until DMA Stream is disabled.
+		while(DMA2_Stream1->CR & DMA_SxCR_EN);
+		// Clear all interrupt flags to ensure no miss-firing when enabling.
+		// Stream transfer complete interrupt flag.
+		DMA2->LIFCR |= DMA_LIFCR_CTCIF1;
+		// Stream half transfer complete interrupt flag.
+		DMA2->LIFCR |= DMA_LIFCR_CHTIF1;
+		// Stream transfer error interrupt flag
+		DMA2->LIFCR |= DMA_LIFCR_CTEIF1;
+		// Direct mode error interrupt flag
+		DMA2->LIFCR |=DMA_LIFCR_CDMEIF1;
+		// FIFO Error interrupt flag.
+		DMA2->LIFCR |= DMA_LIFCR_CFEIF1;
+		// Set data-width (MSize/PSize) to  be word (32 bit for Record_Data).
+		DMA2_Stream1->CR |= DMA_SxCR_MSIZE_1 |DMA_SxCR_PSIZE_1;
+		// Configure for memory increment
+		DMA2_Stream1->CR |= DMA_SxCR_MINC;
+		// Select Channel 2
+		DMA2_Stream1->CR |= DMA_SxCR_CHSEL_1 ;
+		DMA2_Stream1->CR &= ~(DMA_SxCR_CHSEL_0 | DMA_SxCR_CHSEL_2);
+		// Set memory address (for  sending data - the waveform data).
+		DMA2_Stream1->M0AR = (uint32_t)p_DataPoints;
+		// Set the peripheral address (where to get the data)
+		DMA2_Stream1->PAR = (uint32_t)&ADC3->DR; // DAC holding register.
+		// Set the transfer direction (clearing unwanted bit)
+		DMA2_Stream1->CR &= ~(DMA_SxCR_DIR_0 | DMA_SxCR_DIR_1);
+		// Set the number of data transfer
+		DMA2_Stream1->NDTR = ul_Num_Points;
+		// Enable transfer complete interrupt - to trap overrun.
+		DMA2_Stream1->CR |= DMA_SxCR_TCIE;
+		// Enable the DMA interrupt in NVIC
+		NVIC_EnableIRQ(DMA2_Stream1_IRQn);
+		// Enable the channel - note it won't transfer until triggered by the ADC
+		DMA2_Stream1->CR |= DMA_SxCR_EN;
+
+
+		// Configure the timer(TIM4) and set the required update rate.
+		// Note: This will prompt the ADC reading from data register  AND
+		// initiate another DMA transfer into the RAM.
+		// Enable the timer clock.
+		RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
+		// Set the auto-reload as calculated above
+		TIM3->ARR = (uint16_t)sl_Clock_Count;
+		// Enable TRGO event generation via master mode selection
+		TIM3->CR2 |= TIM_CR2_MMS_1;
+		// Enable the timer
+		TIM3->CR1 |= TIM_CR1_CEN;
+
+
+		// ADC Config
+		//  Configuration for Timer / DMA usage.
+		// Set DMA enable
+		ADC3->CR2 |= ADC_CR2_DMA;
+		// Set  ADC  Trigger Selection (Timer 3 TRGO)
+		ADC3->CR2 |= ADC_CR2_EXTSEL_3;
+		ADC3->CR2 &= ~(ADC_CR2_EXTSEL_0 | ADC_CR2_EXTSEL_1 | ADC_CR2_EXTSEL_2);
+		// Enable the ADC
+		ADC3->CR2 |= ADC_CR2_ADON;
+		// Reinitialise DMA mode in ADC(for another DMA)
+		ADC3->CR2 |= ADC_CR2_DDS;
+		// Reset status ADC3(for another DMA)
+		ADC3->SR = 0;
+		// Enable the channel trigger - this kicks things off.
+		ADC3->CR2 |= ADC_CR2_EXTEN_0;
+		// Reference for time measuring
+		timestamp1 = SysTick_Get_Timestamp();
+
+
+	}
+	return Success;
+}
+
+void DMA2_Stream1_IRQHandler(void)
+{
+	// Check how many microseconds has the whole process taken
+	time_measure = SysTick_Elapsed_MicroSeconds(timestamp1);
+
+	// Simply ack the interrupt
+	DMA2->LIFCR |= DMA_LIFCR_CTCIF1;
+
+	//Set the under DMA flag False
+	uc_ADC_Under_DMA_Control = TRUE;
+}
 
 

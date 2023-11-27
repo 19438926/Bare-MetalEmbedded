@@ -36,6 +36,7 @@ uint32_t ADC_Get_Temperature();
 uint8_t ADC_Get_Status();
 uint32_t ADC_Get_Reading();
 uint16_t ADC_Get_Sample_Time();
+uint8_t ADC_Init_DMA_Transfer(uint32_t *p_DataPoints, uint16_t ul_Num_Points, uint32_t ull_Required_us);
 
 
 
