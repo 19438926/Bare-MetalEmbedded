@@ -57,7 +57,7 @@ uint64_t timestamp1;
 
 _ADC_DATA Data;
 
-uint8_t  uc_ADC_Under_DMA_Control = TRUE;
+uint8_t  uc_ADC_DMA_Transfer_Completed = TRUE;
 
 /**************************/
 /* Local only function prototypes */
@@ -178,7 +178,7 @@ void ADC_Run(void)
 		FilteredTemperature += ((RawTemperature - FilteredTemperature)*0.0001); // Average over 10000 readings.
 	}
 
-	if(uc_ADC_Under_DMA_Control)// Manage the continuous reading at beginning and after DMA mode.
+	if(uc_ADC_DMA_Transfer_Completed)//for beginning or resetting back to normal sampling.
 	{
 		// Clear the past relevant DMA setting.
 		ADC3->CR2 = 0;
@@ -195,7 +195,7 @@ void ADC_Run(void)
 		// Trigger initial conversion
 		ADC3->CR2 |= ADC_CR2_SWSTART;
 
-		uc_ADC_Under_DMA_Control = FALSE; // finish setting and will not come here before another DMA have happened
+		uc_ADC_DMA_Transfer_Completed = FALSE; // finish setting and will not come here before another DMA have happened
 	}
 
 	// Has the Analogue input conversion completed?
@@ -409,7 +409,7 @@ uint8_t ADC_Init_DMA_Transfer(uint32_t *p_DataPoints, uint16_t ul_Num_Points, ui
 		DMA2_Stream1->CR |= DMA_SxCR_EN;
 
 
-		// Configure the timer(TIM4) and set the required update rate.
+		// Configure the timer(TIM3) and set the required update rate.
 		// Note: This will prompt the ADC reading from data register  AND
 		// initiate another DMA transfer into the RAM.
 		// Enable the timer clock.
@@ -453,8 +453,8 @@ void DMA2_Stream1_IRQHandler(void)
 	// Simply ack the interrupt
 	DMA2->LIFCR |= DMA_LIFCR_CTCIF1;
 
-	//Set the under DMA flag False
-	uc_ADC_Under_DMA_Control = TRUE;
+	//Set the under DMA flag TRUE for setting to be normal continuous reading
+	uc_ADC_DMA_Transfer_Completed = TRUE;
 }
 
 
