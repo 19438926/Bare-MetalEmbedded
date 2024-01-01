@@ -21,6 +21,7 @@ typedef enum
 	eWT_Triangular,
 	eWT_Square,
 	eWT_Custom,//Not implemented yet
+	eWT_AngleY,
 }eWaveformType;
 /***************************************************/
 /* Types used by this module */

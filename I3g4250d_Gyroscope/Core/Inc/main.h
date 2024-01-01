@@ -59,6 +59,9 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define GYRO_nCS_Pin GPIO_PIN_1
 #define GYRO_nCS_GPIO_Port GPIOC
+#define DataUpdate_Pin GPIO_PIN_1
+#define DataUpdate_GPIO_Port GPIOA
+#define DataUpdate_EXTI_IRQn EXTI1_IRQn
 
 /* USER CODE BEGIN Private defines */
 

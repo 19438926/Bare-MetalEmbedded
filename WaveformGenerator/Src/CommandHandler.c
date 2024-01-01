@@ -310,6 +310,12 @@ void cmd_SetType( char *p_Data)
 			Waveform.e_WaveType = eWT_Custom;
 			c_CommandActioned = TRUE;
 		}
+	else if(strncmp(&p_Data[9],"AngleY", 6) == 0)
+			{
+				// Sawtooth wave requested.
+				Waveform.e_WaveType = eWT_AngleY;
+				c_CommandActioned = TRUE;
+			}
 
 	if (c_CommandActioned)
 	{
@@ -807,6 +813,10 @@ void cmd_GetType(char *p_Data)
 
 	case eWT_Custom:
 		sprintf(CommandResponseBuff, "Custom\r\n");
+		break;
+
+	case eWT_AngleY:
+	    sprintf(CommandResponseBuff, "AngleY\r\n");
 		break;
 	}
 	USART_Request_Tx(CommandResponseBuff, strlen(CommandResponseBuff));
