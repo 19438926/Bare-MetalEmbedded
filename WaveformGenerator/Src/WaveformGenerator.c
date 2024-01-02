@@ -22,6 +22,7 @@
 #include"GlobalDefs.h"
 #include"DAC.h"
 #include"PWM.h"
+#include"I3g4250d_Gyro.h"
 
 
 
@@ -300,6 +301,9 @@ float WaveformGenerator_ComputeSignal(_WAVEFORM_DESCRIPTOR *pWave,uint64_t ull_T
 
 		f_Result = (f_Result / 10000.0) * pWave ->f_Amplitude;
 		break;
+	case eWT_AngleY:
+		f_Result = Get_Y_Data()*pWave->f_Amplitude;
+		break;
 
 	}
 	return f_Result + pWave->f_Offset ;
@@ -397,19 +401,22 @@ uint16_t WaveformGenerator_Get_CallRate(eWaveformType Type)
 	uint16_t uSValue;
 	switch (Type) {
 	case 0: // Sine Wave
-		uSValue = 24;
+		uSValue = 43;
 		break;
 	case 1: // SawTooth
-		uSValue = 8;
+		uSValue = 25;
 		break;
 	case 2: // Triangular
-		uSValue = 9;
+		uSValue = 26;
 		break;
 	case 3: // Square
-		uSValue = 7;
+		uSValue = 24;
 		break;
 	case 4: // Custom
-		uSValue = 20;
+		uSValue = 36;
+		break;
+	case 5:
+		uSValue = 1;
 		break;
 
 	}

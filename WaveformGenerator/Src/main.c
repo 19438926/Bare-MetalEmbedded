@@ -14,6 +14,7 @@
 /*Required Header Files */
 #include "stm32f429xx.h"
 
+#include "I3g4250d_Gyro.h"
 #include "SysTick.h"
 #include "PWM.h"
 #include "DAC.h"
@@ -81,6 +82,12 @@ int main(void) {
 	//Initialise to use external clock , enable relevant gpio and peripheral etc.
 	Micro_Initialisation();
 
+	//Check if SPI communication work properly
+	I3g4250d_Check();
+
+	// Initialise the gyroscope configuration
+	I3g4250d_Init();
+
 	//configure our waveform descriptor structure.
 	Waveform.e_WaveType = eWT_Triangular;
 	Waveform.f_Amplitude = 100;
@@ -122,6 +129,9 @@ int main(void) {
 
 		//Initialise ADC
 		ADC_Run();
+
+		// Communicate with gyroscope
+		I3g4250d_Loop();
 
 
 
@@ -181,7 +191,8 @@ void Micro_Initialisation(void) {
 	//Initialise USART
 	USART_Init(115200);
 
-
+	//Initialise SPI
+	SPI_Init();
 }
 
 /***********************************************
@@ -243,8 +254,8 @@ void Initialise_External_Clock(void) {
 void Initialise_GPIO(void) {
 
 
-	//Enable clock access to GPIOG and GPIOA
-	RCC->AHB1ENR |= RCC_AHB1ENR_GPIOGEN | RCC_AHB1ENR_GPIOAEN;
+	//Enable clock access to GPIOG and GPIOA and GPIOC
+	RCC->AHB1ENR |= RCC_AHB1ENR_GPIOGEN | RCC_AHB1ENR_GPIOAEN | RCC_AHB1ENR_GPIOCEN |RCC_AHB1ENR_GPIOFEN;
 
 	// Enable clock access for DMA2
 	RCC->AHB1ENR |= RCC_AHB1ENR_DMA2EN;
@@ -273,6 +284,15 @@ void Initialise_GPIO(void) {
 	EXTI->FTSR = EXTI_FTSR_TR0;
 	// Finally enable the interrupt
 	NVIC_EnableIRQ(EXTI0_IRQn);
+
+	//SPI : Configure the pins we need(PF9(MOSI)/PF8(MISO)/PF7(SCK)) for relevant alternate function.
+	GPIOF->MODER |= GPIO_MODER_MODE9_1 | GPIO_MODER_MODE8_1 | GPIO_MODER_MODE7_1;
+	GPIOF->AFR[1] |= GPIO_AFRH_AFRH1_0 | GPIO_AFRH_AFRH1_2;
+	GPIOF->AFR[1] |= GPIO_AFRH_AFRH0_0 | GPIO_AFRH_AFRH0_2;
+	GPIOF->AFR[0] |= GPIO_AFRL_AFRL7_0 | GPIO_AFRL_AFRL7_2;
+	// Set the PC1(CS) to be general purpose output mode
+	GPIOC->MODER |= GPIO_MODER_MODE1_0;
+
 }
 
 
