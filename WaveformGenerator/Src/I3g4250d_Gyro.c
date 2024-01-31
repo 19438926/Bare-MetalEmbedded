@@ -58,7 +58,7 @@
 #define GYRO_REG_CTRL5_SETTINGS     0x10
 
 // What to expect back from a working WHOAMI command response
-#define WHOAMI_RESPONSE                0xD3
+#define WHOAMI_RESPONSE             0xD3
 
 // Status register bit for ZYX Data available ZYXDA
 #define GYRO_STATUS_ZYX_DATA_AVAILABLE_BIT        0x08
@@ -108,6 +108,8 @@ float Angles_Z;
 
 /*********************************************/
 /* Local only function prototype */
+void SPI_Receive();
+void SPI_Transmit();
 
 /*********************************************
  * @brief SPI_Init
@@ -146,7 +148,6 @@ void SPI_Init()
 
 	// Enable the SPI
 	SPI5->CR1 |= SPI_CR1_SPE;
-
 }
 
 
@@ -183,8 +184,8 @@ void I3g4250d_Check()
 	if(spiTxRxBuff[1] != WHOAMI_RESPONSE)
 	{
 		asm("nop");
-
-	}else
+	}
+	else
 	{
 		asm("nop");
 	}
@@ -232,7 +233,7 @@ void SPI_Receive (uint8_t *data, int size)
 }
 
 /*********************************************
- * @brief I3g4250d_Read
+ * @brief Gyro_SPI_Read
  * Inline function to simplify reading register data from Gyro chip.
  * @param uint8_t : Register address to read from
  * @retval uint8_t : Value read from register.
@@ -252,7 +253,7 @@ static inline uint8_t Gyro_SPI_Read(uint8_t uc_RegisterAddress)
 }
 
 /*********************************************
- * @brief I3g4250d_Write
+ * @brief Gyro_SPI_Write
  * Inline function to simplify writing register data to the Gyro chip.
  * @param uint8_t : Register address to write to
  * @param uint8_t : Data to write to register.
@@ -349,7 +350,7 @@ void I3g4250d_Loop(void)
 			LastAngleRate_X = angleRate_x;
 		}
 
-			if((angleRate_y > GYRO_NOISE) || (angleRate_y < -GYRO_NOISE))
+		if((angleRate_y > GYRO_NOISE) || (angleRate_y < -GYRO_NOISE))
 		{
 			Angles_Y += (LastAngleRate_Y  * difftime);
 			LastAngleRate_Y = angleRate_y;

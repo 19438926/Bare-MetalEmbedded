@@ -56,13 +56,6 @@
 /* Local only variable declaration */
 _WAVEFORM_DESCRIPTOR  Waveform;
 
-static volatile uint32_t test1 = 0;
-
-
-
-//uint64_t rinige;
-//uint64_t ull_TimeStamp;
-//uint64_t rinidi;
 /**************************/
 /* Local function prototypes */
 void Micro_Initialisation(void);
@@ -75,9 +68,10 @@ void Initialise_External_Clock(void);
  * @param None
  * @retval None
  */
-int main(void) {
+int main(void)
+{
 
-	_WAVEFORM_DESCRIPTOR Waveform;
+	//_WAVEFORM_DESCRIPTOR Waveform;
 
 	//Initialise to use external clock , enable relevant gpio and peripheral etc.
 	Micro_Initialisation();
@@ -109,11 +103,11 @@ int main(void) {
 		USART_Process();
 
 
-
+		// Handle the command received from USART
 		CommandHandler_Run();
 
+		// Process the digital input
 		DI_Process();
-
 
 		uint8_t i = DI_Get_Input(2);
 
@@ -169,7 +163,8 @@ int main(void) {
  * @param None
  * @retval None
  */
-void Micro_Initialisation(void) {
+void Micro_Initialisation(void)
+{
 	//configure chip to use external clock source.
 	Initialise_External_Clock();
 
@@ -201,7 +196,8 @@ void Micro_Initialisation(void) {
  * @param None
  * @retval None
  */
-void Initialise_External_Clock(void) {
+void Initialise_External_Clock(void)
+{
 
 	//Enable HSE and wait for the HSE to become ready
 	RCC->CR |= RCC_CR_HSEON;
@@ -251,9 +247,8 @@ void Initialise_External_Clock(void) {
  * @param None
  * @retval None
  */
-void Initialise_GPIO(void) {
-
-
+void Initialise_GPIO(void)
+{
 	//Enable clock access to GPIOG and GPIOA and GPIOC
 	RCC->AHB1ENR |= RCC_AHB1ENR_GPIOGEN | RCC_AHB1ENR_GPIOAEN | RCC_AHB1ENR_GPIOCEN |RCC_AHB1ENR_GPIOFEN;
 
@@ -292,7 +287,6 @@ void Initialise_GPIO(void) {
 	GPIOF->AFR[0] |= GPIO_AFRL_AFRL7_0 | GPIO_AFRL_AFRL7_2;
 	// Set the PC1(CS) to be general purpose output mode
 	GPIOC->MODER |= GPIO_MODER_MODE1_0;
-
 }
 
 
