@@ -23,6 +23,7 @@
 #include"USART.h"
 #include"CommandHandler.h"
 #include"DigitalInput.h"
+#include "STMPE811.h"
 // hello
 
 /****************************************************/
@@ -82,6 +83,12 @@ int main(void)
 	// Initialise the gyroscope configuration
 	I3g4250d_Init();
 
+	//Check if I2C communication work properly
+	I2C_Check();
+
+	// Initialise the TouchScreen configuration
+	Touch_Init();
+
 	//configure our waveform descriptor structure.
 	Waveform.e_WaveType = eWT_Triangular;
 	Waveform.f_Amplitude = 100;
@@ -126,6 +133,9 @@ int main(void)
 
 		// Communicate with gyroscope
 		I3g4250d_Loop();
+
+		// Communcate with TouchScreen
+		Touch_Process();
 
 
 
@@ -188,6 +198,9 @@ void Micro_Initialisation(void)
 
 	//Initialise SPI
 	SPI_Init();
+
+	//Initialise I2C
+	I2C_Init();
 }
 
 /***********************************************
@@ -287,6 +300,18 @@ void Initialise_GPIO(void)
 	GPIOF->AFR[0] |= GPIO_AFRL_AFRL7_0 | GPIO_AFRL_AFRL7_2;
 	// Set the PC1(CS) to be general purpose output mode
 	GPIOC->MODER |= GPIO_MODER_MODE1_0;
+
+	//I2C : Configure the pins we need(PA8(SCL)/PC9(SDA)) for relevant alternate function.
+	GPIOA->MODER |= GPIO_MODER_MODE8_1;
+	GPIOC->MODER |= GPIO_MODER_MODE9_1;
+	GPIOA->AFR[1] |= GPIO_AFRH_AFRH0_2;
+	GPIOC->AFR[1] |= GPIO_AFRH_AFRH1_2;
+//	GPIOA->OTYPER |= GPIO_OTYPER_OT8;
+//	GPIOC->OTYPER |= GPIO_OTYPER_OT9;
+//	GPIOA->OSPEEDR |= GPIO_OSPEEDER_OSPEEDR8_0 | GPIO_OSPEEDER_OSPEEDR8_1;
+//	GPIOC->OSPEEDR |= GPIO_OSPEEDER_OSPEEDR9_0 | GPIO_OSPEEDER_OSPEEDR9_1;
+//	GPIOA->PUPDR |= GPIO_PUPDR_PUPDR8_0;
+//	GPIOC->PUPDR |= GPIO_PUPDR_PUPDR9_0;
 }
 
 
