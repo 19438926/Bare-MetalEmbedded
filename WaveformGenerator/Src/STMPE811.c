@@ -490,6 +490,83 @@ void Touch_Init ()
 	stmpe811_TS_Start(STMPE811_DEVICE_ADDRESS);
 }
 
+uint8_t I2CStartNonBlocking()
+{
+	static uint8_t state = 0;
+	uint8_t finished = FALSE;
+
+	switch (state)
+	{
+	case 0:
+		// Perform a start non-blocking
+		//Enable the acknowledge
+		I2C3->CR1 |= I2C_CR1_ACK;
+
+		//Start the I2C communication
+		I2C3->CR1 |= I2C_CR1_START;
+		state ++;
+		break;
+
+	case 1: // Started Ok?
+		if (!(I2C3->SR1 & I2C_SR1_SB))
+		{
+			finished = TRUE;
+			state = 0;
+		}
+		break;
+	}
+
+	return finished;
+}
+
+uint8_t detectTouchNonBlocking()
+{
+	static uint8_t state = 0;
+	uint8_t finished = FALSE;
+
+	switch (state)
+	{
+	case 0:
+		if (I2CStartNonBlocking())
+		{
+			state ++;
+		}
+		break;
+
+	case 2:
+		// Send the address
+		I2C3->DR = Address;
+
+		break;
+
+		default:
+			state = 0;
+			finished = TRUE;
+			break;
+	}
+
+	return finished;
+}
+
+uint8_t GetXYNonBLocking()
+{
+	static uint8_t state = 0;
+
+	switch (state)
+	{
+	case 0:
+		break;
+
+	case 1:
+		break;
+
+	case 2:
+		break;
+	}
+
+	return TRUE;
+}
+
 /*********************************************
  * @brief Touch_Process
  * Run the touch interface
@@ -498,6 +575,26 @@ void Touch_Init ()
  */
 void Touch_Process(void)
 {
+	static int state = 0;
+
+	switch (state)
+	{
+	case 0: // Detect Touch
+		if (detectTouchNonBlocking())
+		{
+			state ++;
+		}
+		break;
+
+	case 1: // Get XY
+		if (GetXYNonBLocking())
+		{
+			state = 0;
+		}
+		break;
+	}
+
+
 	// Has touch been indicated?
 	uint8_t uc_TouchDetected = stmpe811_TS_DetectTouch(STMPE811_DEVICE_ADDRESS);
 	if(uc_TouchDetected)
