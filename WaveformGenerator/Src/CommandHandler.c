@@ -312,7 +312,7 @@ void cmd_SetType( char *p_Data)
 		}
 	else if(strncmp(&p_Data[9],"AngleY", 6) == 0)
 			{
-				// Sawtooth wave requested.
+				// AngleY wave requested.
 				Waveform.e_WaveType = eWT_AngleY;
 				c_CommandActioned = TRUE;
 			}

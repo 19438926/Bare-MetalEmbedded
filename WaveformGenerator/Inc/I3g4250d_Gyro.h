@@ -12,8 +12,6 @@
 
 void SPI_Init();
 void I3g4250d_Check();
-void SPI_Receive();
-void SPI_Transmit();
 void I3g4250d_Init();
 void I3g4250d_Loop();
 float Get_Y_Data();

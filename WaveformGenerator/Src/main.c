@@ -23,6 +23,7 @@
 #include"USART.h"
 #include"CommandHandler.h"
 #include"DigitalInput.h"
+#include "STMPE811.h"
 // hello
 
 /****************************************************/
@@ -56,13 +57,6 @@
 /* Local only variable declaration */
 _WAVEFORM_DESCRIPTOR  Waveform;
 
-static volatile uint32_t test1 = 0;
-
-
-
-//uint64_t rinige;
-//uint64_t ull_TimeStamp;
-//uint64_t rinidi;
 /**************************/
 /* Local function prototypes */
 void Micro_Initialisation(void);
@@ -75,9 +69,10 @@ void Initialise_External_Clock(void);
  * @param None
  * @retval None
  */
-int main(void) {
+int main(void)
+{
 
-	_WAVEFORM_DESCRIPTOR Waveform;
+	//_WAVEFORM_DESCRIPTOR Waveform;
 
 	//Initialise to use external clock , enable relevant gpio and peripheral etc.
 	Micro_Initialisation();
@@ -87,6 +82,12 @@ int main(void) {
 
 	// Initialise the gyroscope configuration
 	I3g4250d_Init();
+
+	//Check if I2C communication work properly
+	I2C_Check();
+
+	// Initialise the TouchScreen configuration
+	Touch_Init();
 
 	//configure our waveform descriptor structure.
 	Waveform.e_WaveType = eWT_Triangular;
@@ -109,11 +110,11 @@ int main(void) {
 		USART_Process();
 
 
-
+		// Handle the command received from USART
 		CommandHandler_Run();
 
+		// Process the digital input
 		DI_Process();
-
 
 		uint8_t i = DI_Get_Input(2);
 
@@ -132,6 +133,9 @@ int main(void) {
 
 		// Communicate with gyroscope
 		I3g4250d_Loop();
+
+		// Communcate with TouchScreen
+		Touch_Process();
 
 
 
@@ -169,7 +173,8 @@ int main(void) {
  * @param None
  * @retval None
  */
-void Micro_Initialisation(void) {
+void Micro_Initialisation(void)
+{
 	//configure chip to use external clock source.
 	Initialise_External_Clock();
 
@@ -193,6 +198,9 @@ void Micro_Initialisation(void) {
 
 	//Initialise SPI
 	SPI_Init();
+
+	//Initialise I2C
+	I2C_Init();
 }
 
 /***********************************************
@@ -201,7 +209,8 @@ void Micro_Initialisation(void) {
  * @param None
  * @retval None
  */
-void Initialise_External_Clock(void) {
+void Initialise_External_Clock(void)
+{
 
 	//Enable HSE and wait for the HSE to become ready
 	RCC->CR |= RCC_CR_HSEON;
@@ -251,9 +260,8 @@ void Initialise_External_Clock(void) {
  * @param None
  * @retval None
  */
-void Initialise_GPIO(void) {
-
-
+void Initialise_GPIO(void)
+{
 	//Enable clock access to GPIOG and GPIOA and GPIOC
 	RCC->AHB1ENR |= RCC_AHB1ENR_GPIOGEN | RCC_AHB1ENR_GPIOAEN | RCC_AHB1ENR_GPIOCEN |RCC_AHB1ENR_GPIOFEN;
 
@@ -293,6 +301,17 @@ void Initialise_GPIO(void) {
 	// Set the PC1(CS) to be general purpose output mode
 	GPIOC->MODER |= GPIO_MODER_MODE1_0;
 
+	//I2C : Configure the pins we need(PA8(SCL)/PC9(SDA)) for relevant alternate function.
+	GPIOA->MODER |= GPIO_MODER_MODE8_1;
+	GPIOC->MODER |= GPIO_MODER_MODE9_1;
+	GPIOA->AFR[1] |= GPIO_AFRH_AFRH0_2;
+	GPIOC->AFR[1] |= GPIO_AFRH_AFRH1_2;
+//	GPIOA->OTYPER |= GPIO_OTYPER_OT8;
+//	GPIOC->OTYPER |= GPIO_OTYPER_OT9;
+//	GPIOA->OSPEEDR |= GPIO_OSPEEDER_OSPEEDR8_0 | GPIO_OSPEEDER_OSPEEDR8_1;
+//	GPIOC->OSPEEDR |= GPIO_OSPEEDER_OSPEEDR9_0 | GPIO_OSPEEDER_OSPEEDR9_1;
+//	GPIOA->PUPDR |= GPIO_PUPDR_PUPDR8_0;
+//	GPIOC->PUPDR |= GPIO_PUPDR_PUPDR9_0;
 }
 
 
