@@ -15,6 +15,7 @@
 /*Required Header Files */
 #include "stm32f429xx.h"
 #include "STMPE811.h"
+#include "GlobalDefs.h"
 
 
 /****************************************************/
@@ -74,10 +75,12 @@
 // ID returned from the device
 uint16_t STMPE811_ID;
 uint8_t Value[2];
+uint8_t dataXYZ[4];
 
 // Touch info
 uint16_t us_TouchPointX, us_TouchPointY;
 uint32_t ul_TouchCount;
+uint8_t data;
 
 /*********************************************/
 /* Local only function prototype */
@@ -88,16 +91,28 @@ void I2C_Transmit(uint8_t *Data,uint8_t Number);
 void I2C_Receive(uint8_t *Data,uint8_t Number,uint8_t Address);
 void I2C_Stop();
 
+uint8_t I2CStartNonBlocking();
+uint8_t I2C_Call_AddressNonBlocking(uint8_t Address);
+uint8_t I2C_TransmitNonBlocking(uint8_t *Data);
+uint8_t I2C_ReceiveNonBlocking(uint8_t *Data,uint8_t Address,uint8_t Number);
+
 // I2C Helpers for touch screen controller
 void I2Cx_WriteData(uint8_t Addr, uint8_t Reg, uint8_t Value);
 uint8_t I2Cx_ReadData(uint8_t Addr, uint8_t Reg);
 void I2Cx_ReadBuffer(uint8_t Addr, uint8_t Reg, uint8_t *pBuffer, uint16_t Length);
 void I2Cx_Error( void );
 
+uint8_t I2Cx_ReadDataNonBlocking(uint8_t Addr, uint8_t Reg);
+uint8_t I2Cx_ReadBufferNonBlocking(uint8_t Addr, uint8_t Reg, uint8_t *pBuffer, uint16_t Length);
+
 // STMPE811 functionality
 void stmpe811_TS_GetXY(uint16_t *X, uint16_t *Y);
 uint8_t stmpe811_TS_DetectTouch(uint8_t DeviceAddr);
 void stmpe811_TS_Start(uint8_t DeviceAddr);
+uint8_t detectTouchNonBlocking(uint8_t Address);
+uint8_t GetXYNonBLocking(uint16_t *X,uint16_t *Y);
+
+
 
 /*********************************************
  * @brief I2C_Init
@@ -490,6 +505,12 @@ void Touch_Init ()
 	stmpe811_TS_Start(STMPE811_DEVICE_ADDRESS);
 }
 
+/*********************************************
+ * @brief I2CStartNonBlocking
+ * Start or Restart I2C communication(performing non-blocking)
+ * @param None
+ * @retval :uint8_t
+ */
 uint8_t I2CStartNonBlocking()
 {
 	static uint8_t state = 0;
@@ -507,8 +528,9 @@ uint8_t I2CStartNonBlocking()
 		state ++;
 		break;
 
-	case 1: // Started Ok?
-		if (!(I2C3->SR1 & I2C_SR1_SB))
+	case 1:
+		// Started Ok?
+		if ((I2C3->SR1 & I2C_SR1_SB))
 		{
 			finished = TRUE;
 			state = 0;
@@ -519,10 +541,300 @@ uint8_t I2CStartNonBlocking()
 	return finished;
 }
 
-uint8_t detectTouchNonBlocking()
+/*********************************************
+ * @brief I2C_Call_AddressNonBlocking
+ * Transmit slave address byte (perform  non-blocking)
+ * @param uint8_t Address
+ * @retval uint8_t
+ */
+uint8_t I2C_Call_AddressNonBlocking(uint8_t Address)
 {
 	static uint8_t state = 0;
 	uint8_t finished = FALSE;
+
+	switch (state)
+	{
+	case 0:
+		// Send the address
+		I2C3->DR = Address;
+		state ++;
+		break;
+
+	case 1:
+		// Address Ok?
+		if ((I2C3->SR1 & I2C_SR1_ADDR))
+		{
+			// Read SR1/SR2 register by rule
+			I2C3->SR1; I2C3->SR2;
+			finished = TRUE;
+			state = 0;
+		}
+		break;
+	}
+
+	return finished;
+
+}
+
+/*********************************************
+ * @brief I2C_TransmitNonBlocking
+ * Transmit data to slave(performing non-blocking)
+ * @param uint8_t *Data
+ * @retval uint8_t
+ */
+uint8_t I2C_TransmitNonBlocking(uint8_t *Data)
+{
+	static uint8_t state = 0;
+	uint8_t finished = FALSE;
+
+	switch (state)
+	{
+	case 0:
+		// If the transmit flag empty
+		if((I2C3->SR1 & I2C_SR1_TXE))
+		{
+		state ++;
+		}
+		break;
+
+	case 1:
+		I2C3->DR = *Data; // transmitting data
+		state ++;
+		break;
+
+	case 2:
+		if((I2C3->SR1 & I2C_SR1_BTF))
+		{
+			finished = TRUE;
+			state = 0;
+		}
+		break;
+	}
+	return finished;
+}
+
+/*********************************************
+ * @brief I2C_ReceiveNonBlocking
+ * Receive data from slave for 4 BYTES or 1 BYTE(performing non-Blocking)
+ * @param uint8_t *Data, uint8_t Address,uint8_t Number
+ * @retval uint8_t
+ */
+uint8_t I2C_ReceiveNonBlocking(uint8_t *Data,uint8_t Address,uint8_t Number)
+{
+	static uint8_t state = 0;
+	uint8_t finished = FALSE;
+
+	if(Number == 1)
+	{
+		switch(state)
+		{
+		case 0:
+			// Send the address
+			I2C3->DR = Address;
+			state++;
+			break;
+
+		case 1:
+			if((I2C3->SR1 & I2C_SR1_ADDR))
+			{
+				I2C3->CR1 &= ~(I2C_CR1_ACK); //disable acknowledge bit
+
+				// Read SR1/SR2 register by rule
+				I2C3->SR1; I2C3->SR2;
+
+				I2C_Stop();	//Stop the communication
+
+				state++;
+			}
+			break;
+
+		case 2:
+			if((I2C3->SR1 & I2C_SR1_RXNE))
+			{
+				Data[0] = I2C3->DR; // Collect the data
+				finished = TRUE;
+				state = 0;
+			}
+			break;
+		}
+	}
+	else
+	{
+		switch(state)
+		{
+		case 0:
+			if(I2C_Call_AddressNonBlocking(Address))
+			{
+				state++;
+			}
+			break;
+
+		case 1:
+			if((I2C3->SR1 & I2C_SR1_RXNE))
+			{
+				Data[0] = I2C3->DR; // Collect the data
+				state++;
+			}
+			break;
+
+		case 2:
+			if((I2C3->SR1 & I2C_SR1_RXNE))
+			{
+				Data[1] = I2C3->DR; // Collect the data
+				state++;
+			}
+			break;
+
+		case 3:
+			if((I2C3->SR1 & I2C_SR1_RXNE))
+			{
+				Data[2] = I2C3->DR; // Collect the data
+				I2C3->CR1 &= ~(I2C_CR1_ACK); //disable acknowledge bit
+				I2C_Stop();	//Stop the communication
+				state++;
+			}
+			break;
+
+		case 4:
+			if((I2C3->SR1 & I2C_SR1_RXNE))
+			{
+				Data[3] = I2C3->DR; // Collect the data
+				finished = TRUE;
+				state = 0;
+			}
+			break;
+		}
+	}
+	return finished;
+}
+
+/*********************************************
+ * @brief I2Cx_ReadDataNonBlocking
+ * Reads a single register address(performing non-blocking)
+ * @param uint8_t: Device Address
+ * @param uint8_t: Register Address
+ * @retval: Value of register read.
+ */
+uint8_t I2Cx_ReadDataNonBlocking(uint8_t Addr, uint8_t Reg)
+{
+	static uint8_t state = 0;
+	uint8_t finished = FALSE;
+	//uint8_t value;//Store the received data
+	uint8_t AddressForRead =  (Addr |0x01);
+
+	// Read the register
+	switch(state)
+	{
+	case 0 :
+		//Start I2C
+		if(I2CStartNonBlocking())
+		{
+			state++;
+		}
+		break;
+	case 1:
+		//Send device address with write
+		if(I2C_Call_AddressNonBlocking(Addr))
+		{
+			state++;
+		}
+		break;
+	case 2:
+		// Send register address
+		if(I2C_TransmitNonBlocking(&Reg))
+		{
+			state++;
+		}
+		break;
+	case 3 :
+		//Start I2C
+		if(I2CStartNonBlocking())
+		{
+			state++;
+		}
+		break;
+	case 4:
+		//Receive the data
+		if(I2C_ReceiveNonBlocking(&data, AddressForRead,1))
+		{
+			finished = TRUE;
+			state = 0;
+		}
+		break;
+	}
+	return finished;
+}
+
+/*********************************************
+ * @brief I2Cx_ReadBufferNonBlocking
+ * Reads a number of registers from the device(perform non-blocking)
+ * @param uint8_t: Device Address
+ * @param uint8_t: Register Address to read from beginning
+ * @param uint8_t*: Buffer to load data read into
+ * @param uint16_t: Number of registers to read.
+ * @retval: 0 / 1 indicating error(0=Ok)
+ */
+uint8_t I2Cx_ReadBufferNonBlocking(uint8_t Addr, uint8_t Reg, uint8_t *pBuffer, uint16_t Length)
+{
+	static uint8_t state = 0;
+	uint8_t finished = FALSE;
+	uint8_t AddressForRead =  (Addr |0x01);
+
+	// Read the register
+	switch(state)
+	{
+	case 0 :
+		//Start I2C
+		if(I2CStartNonBlocking())
+		{
+			state++;
+		}
+		break;
+	case 1:
+		//Send device address with write
+		if(I2C_Call_AddressNonBlocking(Addr))
+		{
+			state++;
+		}
+		break;
+	case 2:
+		// Send register address
+		if(I2C_TransmitNonBlocking(&Reg))
+		{
+			state++;
+		}
+		break;
+	case 3 :
+		//Start I2C
+		if(I2CStartNonBlocking())
+		{
+			state++;
+		}
+		break;
+	case 4:
+		//Receive the data
+		if(I2C_ReceiveNonBlocking(pBuffer, AddressForRead,Length))
+		{
+			finished = TRUE;
+			state = 0;
+		}
+		break;
+	}
+	return finished;
+}
+
+/*********************************************
+ * @brief I2Cx_WriteData
+ * Write data to TSC register(performing non-blocking)
+ * @param uint8_t Addr : slave address, uint8_t Reg : register address in slave device, uint8_t Value: Register value
+ * @retval uint8_t
+ */
+uint8_t I2Cx_WriteDataNonBlocking(uint8_t Addr, uint8_t Reg, uint8_t Value)
+{
+	static uint8_t state = 0;
+	uint8_t finished = FALSE;
+
+	uint8_t info = Value;//Store the value
 
 	switch (state)
 	{
@@ -533,38 +845,151 @@ uint8_t detectTouchNonBlocking()
 		}
 		break;
 
+	case 1:
+		//Send device address with write
+		if(I2C_Call_AddressNonBlocking(Addr))
+		{
+			state++;
+		}
+		break;
 	case 2:
-		// Send the address
-		I2C3->DR = Address;
-
+		// Send register address
+		if(I2C_TransmitNonBlocking(&Reg))
+		{
+			state++;
+		}
+		break;
+	case 3 :
+		//Start I2C
+		if(I2C_TransmitNonBlocking(&info))
+		{
+			state++;
+		}
+		break;
+	case 4:
+		//Receive the data
+		I2C_Stop();
+		finished = TRUE;
+		state = 0;
 		break;
 
-		default:
-			state = 0;
-			finished = TRUE;
-			break;
 	}
 
 	return finished;
+
 }
 
-uint8_t GetXYNonBLocking()
+/*********************************************
+ * @brief stmpe811_TS_DetectTouch
+ * Return if there is touch detected or not(performing non-blocking)
+ * @param uint8_t DeviceAddr: Device address on communication Bus.
+ * @retval: Touch detected state(0/1 = TouchDetected).
+ */
+uint8_t detectTouchNonBlocking(uint8_t Address)
 {
+
 	static uint8_t state = 0;
+	uint8_t uc_Touched = 0;
 
 	switch (state)
 	{
 	case 0:
+		// Read the touch status register and check for the status of the Z bit.
+		if(I2Cx_ReadDataNonBlocking(Address, STMPE811_REG_TSC_CTRL))
+		{
+			// if Z bit set
+			if(data == 129)
+			{
+				state=1;
+				data=0;
+			}
+			// no bit set so reset the FIFO
+			else
+			{
+				state = 2;
+			}
+		}
 		break;
-
 	case 1:
+		// Check the FIFO size
+		if(I2Cx_ReadDataNonBlocking(Address, STMPE811_REG_FIFO_SIZE))
+		{
+			if(data>0)
+			{
+				// Touch detected
+				uc_Touched = 1;
+
+			}
+			state = 0;
+
+		}
+		break;
+	case 2:
+		// No touch detected
+		// Reset FIFO
+		if(I2Cx_WriteDataNonBlocking(STMPE811_DEVICE_ADDRESS, STMPE811_REG_FIFO_STA, 0x01))
+		{
+			state++;
+		}
 		break;
 
-	case 2:
+	case 3:
+		// Enable FIFO again
+		if(I2Cx_WriteDataNonBlocking(STMPE811_DEVICE_ADDRESS, STMPE811_REG_FIFO_STA, 0x00))
+		{
+			state=0;
+		}
 		break;
 	}
 
-	return TRUE;
+	return uc_Touched;
+}
+
+/*********************************************
+ * @brief stmpe811_TS_GetXY
+ * Get the XY touch coordinates(performing non-blocking)
+ * @param uint16_t*: Pointer to X
+ * @param uint16_t*: Pointer to Y
+ * @retval: uint8_t
+ */
+uint8_t GetXYNonBLocking(uint16_t *X,uint16_t *Y)
+{
+	static uint8_t state = 0;
+	uint8_t finished = FALSE;
+
+	uint32_t uldataXYZ;
+	switch (state)
+	{
+	case 0:
+		// rRead the required registers
+		if(I2Cx_ReadBufferNonBlocking(STMPE811_DEVICE_ADDRESS,STMPE811_REG_TSC_DATA_NON_INC,dataXYZ,sizeof(dataXYZ)))
+		{
+			state++;
+
+			// Calculate positions values
+			uldataXYZ = (dataXYZ[0]<<24)|(dataXYZ[1]<<16)|(dataXYZ[2]<<8)|(dataXYZ[3]<<0);
+			*X = (uldataXYZ >> 20) & 0x00000FFF;
+			*Y = (uldataXYZ >> 8)  & 0x00000FFF;
+		}
+		break;
+	case 1:
+		// Reset FIFO
+		if(I2Cx_WriteDataNonBlocking(STMPE811_DEVICE_ADDRESS, STMPE811_REG_FIFO_STA, 0x01))
+		{
+			state++;
+		}
+		break;
+	case 2:
+		// Enable the FIFO
+		if(I2Cx_WriteDataNonBlocking(STMPE811_DEVICE_ADDRESS, STMPE811_REG_FIFO_STA, 0x00))
+		{
+			state=0;
+			finished = TRUE;
+		}
+		break;
+	}
+
+	return finished;
 }
 
 /*********************************************
@@ -580,27 +1005,28 @@ void Touch_Process(void)
 	switch (state)
 	{
 	case 0: // Detect Touch
-		if (detectTouchNonBlocking())
+		if (detectTouchNonBlocking(STMPE811_DEVICE_ADDRESS))
 		{
 			state ++;
 		}
 		break;
 
 	case 1: // Get XY
-		if (GetXYNonBLocking())
+		if (GetXYNonBLocking(&us_TouchPointX, &us_TouchPointY))
 		{
+			ul_TouchCount++;
 			state = 0;
 		}
-		break;
-	}
-
-
-	// Has touch been indicated?
-	uint8_t uc_TouchDetected = stmpe811_TS_DetectTouch(STMPE811_DEVICE_ADDRESS);
-	if(uc_TouchDetected)
-	{
-		// Increment touch count and fetch X / Y Values for the touch point.
-		ul_TouchCount++;
-		stmpe811_TS_GetXY(&us_TouchPointX, &us_TouchPointY);
 	}
 }
+
+
+//	// Has touch been indicated?
+//	uint8_t uc_TouchDetected = stmpe811_TS_DetectTouch(STMPE811_DEVICE_ADDRESS);
+//	if(uc_TouchDetected)
+//	{
+//		// Increment touch count and fetch X / Y Values for the touch point.
+//		ul_TouchCount++;
+//		stmpe811_TS_GetXY(&us_TouchPointX, &us_TouchPointY);
+//	}
+

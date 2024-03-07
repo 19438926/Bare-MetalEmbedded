@@ -281,11 +281,11 @@ void stmpe811_TS_Start(uint8_t DeviceAddr)
 	// Get the current register value for CTRL2
 	uc_Mode = I2Cx_ReadData(DeviceAddr,STMPE811_REG_SYS_CTRL2);
 
-	// Set the Functionalities to be Enabled
-	uc_Mode &= ~(REG_SYS_CTRL2_IO_FCT);
-
-	// Write the new register value
-	I2Cx_WriteData(DeviceAddr,STMPE811_REG_SYS_CTRL2,uc_Mode);
+//	// Set the Functionalities to be Enabled
+//	uc_Mode &= ~(REG_SYS_CTRL2_IO_FCT);
+//
+//	// Write the new register value
+//	I2Cx_WriteData(DeviceAddr,STMPE811_REG_SYS_CTRL2,uc_Mode);
 
 	// Select TSC pins in TSC alternate mode
 	stmpe811_IO_EnableAF(DeviceAddr, REG_IO_AF_TOUCH_IO_ALL);
