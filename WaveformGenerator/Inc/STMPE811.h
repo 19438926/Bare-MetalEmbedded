@@ -13,6 +13,7 @@ void Touch_Init();
 void Touch_Process(void);
 void I2C_Init();
 void I2C_Check();
+void I2C_DMA_En();
 
 
 

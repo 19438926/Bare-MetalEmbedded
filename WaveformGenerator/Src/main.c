@@ -56,6 +56,7 @@
 /*********************************************/
 /* Local only variable declaration */
 _WAVEFORM_DESCRIPTOR  Waveform;
+uint64_t time_measure1;
 
 /**************************/
 /* Local function prototypes */
@@ -88,6 +89,9 @@ int main(void)
 
 	// Initialise the TouchScreen configuration
 	Touch_Init();
+
+	// Enable I2C DMA mode
+	I2C_DMA_En();
 
 	//configure our waveform descriptor structure.
 	Waveform.e_WaveType = eWT_Triangular;
@@ -134,8 +138,12 @@ int main(void)
 		// Communicate with gyroscope
 		I3g4250d_Loop();
 
+		uint64_t time1 = SysTick_Get_Timestamp();
 		// Communcate with TouchScreen
 		Touch_Process();
+		time_measure1 = SysTick_Elapsed_MicroSeconds(time1);
+
+
 
 
 
@@ -265,8 +273,8 @@ void Initialise_GPIO(void)
 	//Enable clock access to GPIOG and GPIOA and GPIOC
 	RCC->AHB1ENR |= RCC_AHB1ENR_GPIOGEN | RCC_AHB1ENR_GPIOAEN | RCC_AHB1ENR_GPIOCEN |RCC_AHB1ENR_GPIOFEN;
 
-	// Enable clock access for DMA2
-	RCC->AHB1ENR |= RCC_AHB1ENR_DMA2EN;
+	// Enable clock access for DMA2 and DMA1
+	RCC->AHB1ENR |= RCC_AHB1ENR_DMA2EN | RCC_AHB1ENR_DMA1EN;
 
 	//Set PG13 as output
 	GPIOG->MODER |= (1 << 26);
