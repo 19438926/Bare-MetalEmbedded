@@ -616,8 +616,8 @@ uint8_t I2C_TransmitNonBlocking(uint8_t *Data)
 		}
 	case 1:
 //		// Transmit data by DMA
-//		I2C_Tx_Via_DMA((uint32_t)Data, 1);
-		I2C3->DR = *Data;
+		I2C_Tx_Via_DMA((uint32_t)Data, 1);
+//		I2C3->DR = *Data;
 
 		state++;
 		break;
@@ -1044,60 +1044,59 @@ void Touch_Process(void)
 // * @param Src/len : Source address / length of data transfer
 // * @retval None
 // */
-//void I2C_Tx_Via_DMA(uint32_t p_Src,uint32_t len)
-//{
-//	// Disable DMA1 Stream 2 while we configure it.
-//	DMA1_Stream4->CR &= ~DMA_SxCR_EN;
-//
-//	// Wait until DMA1 Stream2 is disabled.
-//	while(DMA1_Stream4->CR & DMA_SxCR_EN);
-//
-//	// Clear all interrupt flags to ensure no miss-firing when enabling.
-//	// Stream transfer complete interrupt flag.
-//	DMA1->HIFCR |= DMA_HIFCR_CTCIF4;
-//	// Stream half transfer complete interrupt flag.
-//	DMA1->HIFCR |= DMA_HIFCR_CHTIF4;
-//	// Stream transfer error interrupt flag
-//	DMA1->HIFCR |= DMA_HIFCR_CTEIF4;
-//	// Direct mode error interrupt flag
-//	DMA1->HIFCR |=DMA_HIFCR_CDMEIF4;
-//	// FIFO Error interrupt flag.
-//	DMA1->HIFCR |= DMA_HIFCR_CFEIF4;
-//
-//	// Set peripheral address - where to write the data received.
-//	DMA1_Stream4->PAR = (uint32_t)&I2C3->DR;
-//
-//	//Set destination address (for data coming from USART1 data register.)
-//	DMA1_Stream4->M0AR = p_Src;
-//
-//	// Set length - maximum length.
-//	DMA1_Stream4->NDTR = len;
-//
-//	// Select stream/channel (Stream 4, channel 3 = I2C3 Tx).
-//	DMA1_Stream4->CR = DMA_SxCR_CHSEL_0 | DMA_SxCR_CHSEL_1 ;
-//
-//	// Configure for memory increment
-//	DMA1_Stream4->CR |= DMA_SxCR_MINC;
-//
-//	// Configure transfer direction (set bit 0 ).
-//	DMA1_Stream4->CR |= DMA_SxCR_DIR_0 ;
-//
-//	// Enable transfer complete interrupt - to trap overrun.
-//	DMA1_Stream4->CR |= DMA_SxCR_TCIE;
-//
-//	// Enable direct mode and disable FIFO
-//	DMA1_Stream4->FCR = 0;
-//
-//	// Enable DMA1 Stream
-//	DMA1_Stream4->CR |= DMA_SxCR_EN;
-//
-//	// Set the flag to be FALSE
-//	uc_I2C_DMA_Transfer_Completed = FALSE;
-//
-//	// Enable the DMA interrupt in NVIC
-//	NVIC_EnableIRQ(DMA1_Stream4_IRQn);
-//
-//}
+void I2C_Tx_Via_DMA(uint32_t p_Src,uint32_t len)
+{
+	// Disable DMA1 Stream 2 while we configure it.
+	DMA1_Stream4->CR &= ~DMA_SxCR_EN;
+
+	// Wait until DMA1 Stream2 is disabled.
+	while(DMA1_Stream4->CR & DMA_SxCR_EN);
+
+	// Clear all interrupt flags to ensure no miss-firing when enabling.
+	// Stream transfer complete interrupt flag.
+	DMA1->HIFCR |= DMA_HIFCR_CTCIF4;
+	// Stream half transfer complete interrupt flag.
+	DMA1->HIFCR |= DMA_HIFCR_CHTIF4;
+	// Stream transfer error interrupt flag
+	DMA1->HIFCR |= DMA_HIFCR_CTEIF4;
+	// Direct mode error interrupt flag
+	DMA1->HIFCR |=DMA_HIFCR_CDMEIF4;
+	// FIFO Error interrupt flag.
+	DMA1->HIFCR |= DMA_HIFCR_CFEIF4;
+
+	// Set peripheral address - where to write the data received.
+	DMA1_Stream4->PAR = (uint32_t)&I2C3->DR;
+
+	//Set destination address (for data coming from USART1 data register.)
+	DMA1_Stream4->M0AR = p_Src;
+
+	// Set length - maximum length.
+	DMA1_Stream4->NDTR = len;
+
+	// Select stream/channel (Stream 4, channel 3 = I2C3 Tx).
+	DMA1_Stream4->CR = DMA_SxCR_CHSEL_0 | DMA_SxCR_CHSEL_1 ;
+
+	// Configure for memory increment
+	DMA1_Stream4->CR |= DMA_SxCR_MINC;
+
+	// Configure transfer direction (set bit 0 ).
+	DMA1_Stream4->CR |= DMA_SxCR_DIR_0 ;
+
+	// Enable transfer complete interrupt - to trap overrun.
+	DMA1_Stream4->CR |= DMA_SxCR_TCIE;
+
+	// Enable direct mode and disable FIFO
+	DMA1_Stream4->FCR = 0;
+
+	// Set the flag to be FALSE
+	uc_I2C_DMA_Transfer_Completed = FALSE;
+
+	// Enable the DMA interrupt in NVIC
+	NVIC_EnableIRQ(DMA1_Stream4_IRQn);
+
+	// Enable DMA1 Stream
+	DMA1_Stream4->CR |= DMA_SxCR_EN;
+}
 
 /*********************************************
  * @brief I2C_Rx_Via_DMA
@@ -1169,15 +1168,15 @@ void DMA1_Stream2_IRQHandler(void)
 	uc_I2C_DMA_Transfer_Completed = TRUE;
 }
 
-//void DMA1_Stream4_IRQHandler(void)
-//{
-//	// Simply ack the interrupt
-//	DMA1->HIFCR |= DMA_HIFCR_CTCIF4;
-//
-//	//Set the under DMA flag TRUE for setting to be normal continuous reading
-//	uc_I2C_DMA_Transfer_Completed = TRUE;
-//
-//	// Enable the DMA
-//	I2C3->CR2 &=  ~I2C_CR2_DMAEN;
-//}
+void DMA1_Stream4_IRQHandler(void)
+{
+	// Simply ack the interrupt
+	DMA1->HIFCR |= DMA_HIFCR_CTCIF4;
+
+	//Set the under DMA flag TRUE for setting to be normal continuous reading
+	uc_I2C_DMA_Transfer_Completed = TRUE;
+
+	// Enable the DMA
+	I2C3->CR2 &=  ~I2C_CR2_DMAEN;
+}
 
