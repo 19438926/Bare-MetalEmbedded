@@ -615,9 +615,8 @@ uint8_t I2C_TransmitNonBlocking(uint8_t *Data)
 			state++;
 		}
 	case 1:
-//		// Transmit data by DMA
+		// Transmit data by DMA
 		I2C_Tx_Via_DMA((uint32_t)Data, 1);
-//		I2C3->DR = *Data;
 
 		state++;
 		break;
@@ -1038,12 +1037,12 @@ void Touch_Process(void)
 }
 
 
-///*********************************************
-// * @brief I2C_Tx_Via_DMA
-// * Configures and initiates Tx of data via DMA controller.
-// * @param Src/len : Source address / length of data transfer
-// * @retval None
-// */
+/*********************************************
+ * @brief I2C_Tx_Via_DMA
+ * Configures and initiates Tx of data via DMA controller.
+ * @param Src/len : Source address / length of data transfer
+ * @retval None
+ */
 void I2C_Tx_Via_DMA(uint32_t p_Src,uint32_t len)
 {
 	// Disable DMA1 Stream 2 while we configure it.
@@ -1176,7 +1175,7 @@ void DMA1_Stream4_IRQHandler(void)
 	//Set the under DMA flag TRUE for setting to be normal continuous reading
 	uc_I2C_DMA_Transfer_Completed = TRUE;
 
-	// Enable the DMA
+	// Disable the DMA
 	I2C3->CR2 &=  ~I2C_CR2_DMAEN;
 }
 
