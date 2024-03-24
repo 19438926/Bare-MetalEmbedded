@@ -82,6 +82,9 @@ uint16_t us_TouchPointX, us_TouchPointY;
 uint32_t ul_TouchCount;
 uint8_t data;
 
+// DMA Flag
+uint8_t uc_I2C_DMA_Transfer_Completed = TRUE;
+
 /*********************************************/
 /* Local only function prototype */
 // I2C communication operation
@@ -90,6 +93,8 @@ void I2C_Call_Address(uint8_t Address);
 void I2C_Transmit(uint8_t *Data,uint8_t Number);
 void I2C_Receive(uint8_t *Data,uint8_t Number,uint8_t Address);
 void I2C_Stop();
+void I2C_Tx_Via_DMA(uint32_t p_Src,uint32_t len);
+void I2C_Rx_Via_DMA(uint32_t p_Dest , uint32_t len);
 
 uint8_t I2CStartNonBlocking();
 uint8_t I2C_Call_AddressNonBlocking(uint8_t Address);
@@ -143,6 +148,21 @@ void I2C_Init()
 
 	// Enable the I2C
 	I2C3->CR1 |= I2C_CR1_PE;
+}
+
+/*********************************************
+ * @brief I2C_DMA_En
+ * Enable the I2C DMA mode
+ * @param None
+ * @retval None
+ */
+void I2C_DMA_En()
+{
+	// Enable the DMA
+	I2C3->CR2 |= I2C_CR2_DMAEN;
+
+	// Enable the Last transfer mode
+	I2C3->CR2 |= I2C_CR2_LAST;
 }
 
 /*********************************************
@@ -590,21 +610,23 @@ uint8_t I2C_TransmitNonBlocking(uint8_t *Data)
 	switch (state)
 	{
 	case 0:
-		// If the transmit flag empty
 		if((I2C3->SR1 & I2C_SR1_TXE))
 		{
-		state ++;
+			state++;
 		}
-		break;
-
 	case 1:
-		I2C3->DR = *Data; // transmitting data
-		state ++;
+		// Transmit data by DMA
+		I2C_Tx_Via_DMA((uint32_t)Data, 1);
+
+		state++;
 		break;
 
 	case 2:
 		if((I2C3->SR1 & I2C_SR1_BTF))
 		{
+			// Re-enable the DMA
+			I2C3->CR2 |= I2C_CR2_DMAEN;
+
 			finished = TRUE;
 			state = 0;
 		}
@@ -649,13 +671,22 @@ uint8_t I2C_ReceiveNonBlocking(uint8_t *Data,uint8_t Address,uint8_t Number)
 			break;
 
 		case 2:
-			if((I2C3->SR1 & I2C_SR1_RXNE))
-			{
-				Data[0] = I2C3->DR; // Collect the data
-				finished = TRUE;
-				state = 0;
-			}
+
+			// Receive data by DMA
+			I2C_Rx_Via_DMA((uint32_t)Data, 1);
+
+			state ++;
+
 			break;
+
+		case 3:
+
+			state =0 ;
+
+			finished = TRUE;
+
+			break;
+
 		}
 	}
 	else
@@ -670,39 +701,21 @@ uint8_t I2C_ReceiveNonBlocking(uint8_t *Data,uint8_t Address,uint8_t Number)
 			break;
 
 		case 1:
-			if((I2C3->SR1 & I2C_SR1_RXNE))
-			{
-				Data[0] = I2C3->DR; // Collect the data
-				state++;
-			}
+
+			//Receive data by DMA
+			I2C_Rx_Via_DMA((uint32_t)Data, (uint32_t)Number);
+
+			state++;
+
 			break;
 
 		case 2:
-			if((I2C3->SR1 & I2C_SR1_RXNE))
-			{
-				Data[1] = I2C3->DR; // Collect the data
-				state++;
-			}
+			state =0 ;
+
+			finished = TRUE;
+
 			break;
 
-		case 3:
-			if((I2C3->SR1 & I2C_SR1_RXNE))
-			{
-				Data[2] = I2C3->DR; // Collect the data
-				I2C3->CR1 &= ~(I2C_CR1_ACK); //disable acknowledge bit
-				I2C_Stop();	//Stop the communication
-				state++;
-			}
-			break;
-
-		case 4:
-			if((I2C3->SR1 & I2C_SR1_RXNE))
-			{
-				Data[3] = I2C3->DR; // Collect the data
-				finished = TRUE;
-				state = 0;
-			}
-			break;
 		}
 	}
 	return finished;
@@ -1002,31 +1015,167 @@ void Touch_Process(void)
 {
 	static int state = 0;
 
-	switch (state)
+	if(uc_I2C_DMA_Transfer_Completed)
 	{
-	case 0: // Detect Touch
-		if (detectTouchNonBlocking(STMPE811_DEVICE_ADDRESS))
+		switch (state)
 		{
-			state ++;
-		}
-		break;
+		case 0: // Detect Touch
+			if (detectTouchNonBlocking(STMPE811_DEVICE_ADDRESS))
+			{
+				state ++;
+			}
+			break;
 
-	case 1: // Get XY
-		if (GetXYNonBLocking(&us_TouchPointX, &us_TouchPointY))
-		{
-			ul_TouchCount++;
-			state = 0;
+		case 1: // Get XY
+			if (GetXYNonBLocking(&us_TouchPointX, &us_TouchPointY))
+			{
+				ul_TouchCount++;
+				state = 0;
+			}
 		}
 	}
 }
 
 
-//	// Has touch been indicated?
-//	uint8_t uc_TouchDetected = stmpe811_TS_DetectTouch(STMPE811_DEVICE_ADDRESS);
-//	if(uc_TouchDetected)
-//	{
-//		// Increment touch count and fetch X / Y Values for the touch point.
-//		ul_TouchCount++;
-//		stmpe811_TS_GetXY(&us_TouchPointX, &us_TouchPointY);
-//	}
+/*********************************************
+ * @brief I2C_Tx_Via_DMA
+ * Configures and initiates Tx of data via DMA controller.
+ * @param Src/len : Source address / length of data transfer
+ * @retval None
+ */
+void I2C_Tx_Via_DMA(uint32_t p_Src,uint32_t len)
+{
+	// Disable DMA1 Stream 2 while we configure it.
+	DMA1_Stream4->CR &= ~DMA_SxCR_EN;
+
+	// Wait until DMA1 Stream2 is disabled.
+	while(DMA1_Stream4->CR & DMA_SxCR_EN);
+
+	// Clear all interrupt flags to ensure no miss-firing when enabling.
+	// Stream transfer complete interrupt flag.
+	DMA1->HIFCR |= DMA_HIFCR_CTCIF4;
+	// Stream half transfer complete interrupt flag.
+	DMA1->HIFCR |= DMA_HIFCR_CHTIF4;
+	// Stream transfer error interrupt flag
+	DMA1->HIFCR |= DMA_HIFCR_CTEIF4;
+	// Direct mode error interrupt flag
+	DMA1->HIFCR |=DMA_HIFCR_CDMEIF4;
+	// FIFO Error interrupt flag.
+	DMA1->HIFCR |= DMA_HIFCR_CFEIF4;
+
+	// Set peripheral address - where to write the data received.
+	DMA1_Stream4->PAR = (uint32_t)&I2C3->DR;
+
+	//Set destination address (for data coming from USART1 data register.)
+	DMA1_Stream4->M0AR = p_Src;
+
+	// Set length - maximum length.
+	DMA1_Stream4->NDTR = len;
+
+	// Select stream/channel (Stream 4, channel 3 = I2C3 Tx).
+	DMA1_Stream4->CR = DMA_SxCR_CHSEL_0 | DMA_SxCR_CHSEL_1 ;
+
+	// Configure for memory increment
+	DMA1_Stream4->CR |= DMA_SxCR_MINC;
+
+	// Configure transfer direction (set bit 0 ).
+	DMA1_Stream4->CR |= DMA_SxCR_DIR_0 ;
+
+	// Enable transfer complete interrupt - to trap overrun.
+	DMA1_Stream4->CR |= DMA_SxCR_TCIE;
+
+	// Enable direct mode and disable FIFO
+	DMA1_Stream4->FCR = 0;
+
+	// Set the flag to be FALSE
+	uc_I2C_DMA_Transfer_Completed = FALSE;
+
+	// Enable the DMA interrupt in NVIC
+	NVIC_EnableIRQ(DMA1_Stream4_IRQn);
+
+	// Enable DMA1 Stream
+	DMA1_Stream4->CR |= DMA_SxCR_EN;
+}
+
+/*********************************************
+ * @brief I2C_Rx_Via_DMA
+ * Configures and initiates Rx of data via DMA controller.
+ * @param Dest/len : Source address / length of data transfer
+ * @retval None
+ */
+void I2C_Rx_Via_DMA(uint32_t p_Dest , uint32_t len)
+{
+	// Disable DMA2 Stream 2 while we configure it.
+	DMA1_Stream2->CR &= ~DMA_SxCR_EN;
+
+	// Wait until DMA2 Stream2 is disabled.
+	while(DMA1_Stream2->CR & DMA_SxCR_EN);
+
+	// Clear all interrupt flags to ensure no miss-firing when enabling.
+	// Stream transfer complete interrupt flag.
+	DMA1->LIFCR |= DMA_LIFCR_CTCIF2;
+	// Stream half transfer complete interrupt flag.
+	DMA1->LIFCR |= DMA_LIFCR_CHTIF2;
+	// Stream transfer error interrupt flag
+	DMA1->LIFCR |= DMA_LIFCR_CTEIF2;
+	// Direct mode error interrupt flag
+	DMA1->LIFCR |=DMA_LIFCR_CDMEIF2;
+	// FIFO Error interrupt flag.
+	DMA1->LIFCR |= DMA_LIFCR_CFEIF2;
+
+	// Set peripheral address - where to write the data received.
+	DMA1_Stream2->PAR = (uint32_t)&I2C3->DR;
+
+	//Set destination address (for data coming from I2C3 data register.)
+	DMA1_Stream2->M0AR = p_Dest;
+
+	// Set length - maximum length.
+	DMA1_Stream2->NDTR = len;
+
+	// Select stream/channel (Stream 2, channel 3 = I2C3 Rx).
+	DMA1_Stream2->CR = DMA_SxCR_CHSEL_1 |DMA_SxCR_CHSEL_0;
+
+	// Configure for memory increment
+	DMA1_Stream2->CR |= DMA_SxCR_MINC;
+
+	// Configure transfer direction (clear bit 0 and 1).
+	DMA1_Stream2->CR &= ~(DMA_SxCR_DIR_0 | DMA_SxCR_DIR_1);
+
+	// Enable transfer complete interrupt - to trap overrun.
+	DMA1_Stream2->CR |= DMA_SxCR_TCIE;
+
+	// Enable direct mode and disable FIFO
+	DMA1_Stream2->FCR = 0;
+
+	// Enable DMA2 Stream
+	DMA1_Stream2->CR |= DMA_SxCR_EN;
+
+	// Set the flag to be FALSE
+	uc_I2C_DMA_Transfer_Completed = FALSE;
+
+	// Enable the DMA interrupt in NVIC
+	NVIC_EnableIRQ(DMA1_Stream2_IRQn);
+
+}
+
+void DMA1_Stream2_IRQHandler(void)
+{
+	// Simply ack the interrupt
+	DMA1->LIFCR |= DMA_LIFCR_CTCIF2;
+
+	//Set the under DMA flag TRUE for setting to be normal continuous reading
+	uc_I2C_DMA_Transfer_Completed = TRUE;
+}
+
+void DMA1_Stream4_IRQHandler(void)
+{
+	// Simply ack the interrupt
+	DMA1->HIFCR |= DMA_HIFCR_CTCIF4;
+
+	//Set the under DMA flag TRUE for setting to be normal continuous reading
+	uc_I2C_DMA_Transfer_Completed = TRUE;
+
+	// Disable the DMA
+	I2C3->CR2 &=  ~I2C_CR2_DMAEN;
+}
 
