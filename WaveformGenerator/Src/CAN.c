@@ -156,9 +156,9 @@ void CAN1_RX0_IRQHandler()
 		 F0Data[i] = (CAN1->sFIFOMailBox[0].RDLR>>8*i);
 	 }
 
-	 for(int i=3;i<7;i++)
+	 for(int i=4;i<8;i++)
 	 {
-		 F0Data[i] = (CAN1->sFIFOMailBox[0].RDHR>>8*i);
+		 F0Data[i] = (CAN1->sFIFOMailBox[0].RDHR>>8*(i-4));
 	 }
 
 	 // Release the FIFO.
