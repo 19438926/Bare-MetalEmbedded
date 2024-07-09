@@ -47,7 +47,7 @@ CAN_HandleTypeDef hcan1;
 CAN_TxHeaderTypeDef TxHeader;
 CAN_RxHeaderTypeDef RxHeader;
 
-uint8_t TxData[8];
+uint8_t TxData[8] = "Thankyou";
 uint8_t RxData[8];
 
 uint32_t TxMailbox;
@@ -115,8 +115,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	TxData[0] = 100;   // ms Delay
-	TxData[1] = 40;    // loop rep
+//	TxData[0] = 100;   // ms Delay
+//	TxData[1] = 40;    // loop rep
 
 	HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
 	HAL_Delay(1000);
