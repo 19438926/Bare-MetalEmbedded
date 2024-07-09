@@ -118,7 +118,7 @@ int main(void)
 //	TxData[0] = 100;   // ms Delay
 //	TxData[1] = 40;    // loop rep
 
-	HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
+
 	HAL_Delay(1000);
 
     /* USER CODE END WHILE */
@@ -207,10 +207,10 @@ static void MX_CAN1_Init(void)
   canfilterconfig.FilterActivation = CAN_FILTER_ENABLE;
   canfilterconfig.FilterBank = 18;  // which filter bank to use from the assigned ones
   canfilterconfig.FilterFIFOAssignment = CAN_FILTER_FIFO0;
-  canfilterconfig.FilterIdHigh = 0x103<<5;
-  canfilterconfig.FilterIdLow = 0;
-  canfilterconfig.FilterMaskIdHigh = 0x103<<5;
-  canfilterconfig.FilterMaskIdLow = 0x0000;
+  canfilterconfig.FilterIdHigh = 0;
+  canfilterconfig.FilterIdLow = 123;
+  canfilterconfig.FilterMaskIdHigh = 0;
+  canfilterconfig.FilterMaskIdLow = 0;
   canfilterconfig.FilterMode = CAN_FILTERMODE_IDMASK;
   canfilterconfig.FilterScale = CAN_FILTERSCALE_32BIT;
   canfilterconfig.SlaveStartFilterBank = 20;  // how many filters to assign to the CAN1 (master can)
@@ -244,6 +244,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan1)
 {
 	HAL_CAN_GetRxMessage(hcan1, CAN_RX_FIFO0, &RxHeader, RxData);
 
+	HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
 	//HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_3);
 
 }
