@@ -79,7 +79,7 @@ void CAN_Init()
 	CAN1->FFA1R &= ~(CAN_FFA1R_FFA0);
 	// Set Identifier to be 0 (mask mode so any ID will be accepted
 	CAN1->sFilterRegister[0].FR1 = 446;
-	CAN1->sFilterRegister[0].FR2 = 0;
+	CAN1->sFilterRegister[0].FR2 = 446;
 	// Deactivate all filters.
 	CAN1->FA1R = 0;
 	// Activate the filter bank 0.

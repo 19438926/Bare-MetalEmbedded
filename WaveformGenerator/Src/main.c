@@ -142,7 +142,7 @@ int main(void)
 		Touch_Process();
 
 		// Transmit waveform data to other device
-		//CAN_Process();
+		CAN_Process();
 
 
 
