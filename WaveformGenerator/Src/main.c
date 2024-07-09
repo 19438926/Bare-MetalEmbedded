@@ -141,6 +141,9 @@ int main(void)
 		// Communcate with TouchScreen
 		Touch_Process();
 
+		// Transmit waveform data to other device
+		//CAN_Process();
+
 
 
 //		uint64_t count = 0;0

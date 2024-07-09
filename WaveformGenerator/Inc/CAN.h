@@ -11,5 +11,6 @@
 #define CAN_H_
 
 void CAN_Init();
+void CAN_Process();
 
 #endif /* CAN_H_ */
