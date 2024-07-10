@@ -61,12 +61,12 @@ void CAN_Init()
 	while(!(CAN1->MSR & CAN_MSR_INAK)){};
 
 	// Set Baud rate to be 1M bits/s.
-	// Prescaler: 4  BRP: 0b100
-	// Segment1 : 2	 TS1: 0b11
-	// Segment2 : 3	 TS2: 0b11
-	CAN1->BTR |= 0b100;
-	CAN1->BTR |= 0b11<<20;
+	// Prescaler: 2  BRP: 0b01
+	// Segment1 : 4	 TS1: 0b11
+	// Segment2 : 3	 TS2: 0b10
+	CAN1->BTR |= 0b1;
 	CAN1->BTR |= 0b11<<16;
+	CAN1->BTR |= 0b10<<20;
 
 	// Initialisation the CAN filter banks.
 	// Set initialisation mode for the filters.
@@ -96,35 +96,30 @@ void CAN_Init()
 	CAN1->MCR &= ~(CAN_MCR_INRQ);
 	CAN1->MCR &= ~(CAN_MCR_SLEEP);
 	CAN1->FMR &= ~(CAN_FMR_FINIT);
+
+	// Set the identifier to be 123
+	CAN1->sTxMailBox[0].TIR = 446 << 21;
+
+	// Set the Data Length to be 8
+	CAN1->sTxMailBox[0].TDTR = 8;
+
+	// Set the DATA1,2,3,4
+	CAN1->sTxMailBox[0].TDLR |= Response[3]<<24 | Response[2]<<16 | Response[1]<<8 | Response[0];
+
+	// Set the DATA  5,6,7,8
+	CAN1->sTxMailBox[0].TDHR |= Response[7]<<24 | Response[6]<<16 | Response[5]<<8 | Response[4];
+
+
 }
 
 /*********************************************
  * @brief CAN_Transmit_WData
- * Transmit the waveform information by CAN bus
+ * Transmit response information by CAN bus
  * @param None
  * @retval None
  */
-void CAN_Transmit_WData()
+void CAN_Response()
 {
-	// Set the identifier to be 123
-	CAN1->sTxMailBox[0].TIR = 123 << 21;
-
-	// Set the Data Length to be 7
-	CAN1->sTxMailBox[0].TDTR = 7;
-
-	// the waveform data include: TYPE(1 BYTE), PERIOD(4 BYTE), AMPLITUTDE(1 BYTE), OFFSET(1 BYTE).
-	// Set the DATA0 to be waveform type.
-	CAN1->sTxMailBox[0].TDLR = (uint8_t)(WaveformGenerator_Get_Waveform().e_WaveType);
-
-	// Set the DATA1,2,3,4 to be the period of waveform in 32 bits due to the length limitation.
-	CAN1->sTxMailBox[0].TDLR |= ((uint32_t)(WaveformGenerator_Get_Waveform().ull_Period_uS))<<8;
-	CAN1->sTxMailBox[0].TDHR = ((uint32_t)(WaveformGenerator_Get_Waveform().ull_Period_uS))>>24;
-
-	// Set the DATA 5 to be the waveform amplitude
-	CAN1->sTxMailBox[0].TDHR |= ((uint8_t)(WaveformGenerator_Get_Waveform().f_Amplitude))<<8;
-
-	// Set the DATA  to be the waveform offset
-	CAN1->sTxMailBox[0].TDHR |= ((uint8_t)(WaveformGenerator_Get_Waveform().f_Offset))<<16;
 
 	// Request transmit the message
 	CAN1->sTxMailBox[0].TIR |= CAN_TI0R_TXRQ;
@@ -139,13 +134,13 @@ void CAN_Transmit_WData()
 void CAN_Process()
 {
 	// Check if one seconds has passed
-	if(SysTick_Elapsed_MicroSeconds(CAN_TimeStamp)>1000000)
+	if(SysTick_Elapsed_MicroSeconds(CAN_TimeStamp)>(100000*(uint8_t)(F0Data[0])+100000))
 	{
 		// Update time stamp
 		CAN_TimeStamp = SysTick_Get_Timestamp();
 
-		// Transmit Data
-		CAN_Transmit_WData();
+		GPIOG->ODR ^= GPIO_ODR_ODR_13;
+
 	}
 }
 
@@ -163,6 +158,9 @@ void CAN1_RX0_IRQHandler()
 
 	 // Release the FIFO.
 	 CAN1->RF0R |= CAN_RF0R_RFOM0;
+
+	 // Say ThankYou
+	 CAN_Response();
 }
 
 

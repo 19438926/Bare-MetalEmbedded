@@ -55,22 +55,13 @@ int main(void)
 	//Initialise to use external clock , enable relevant gpio and peripheral etc.
 	Micro_Initialisation();
 
-	static uint64_t timestamp;
+	//static uint64_t timestamp;
 
 	/******************/
 	/* Loop forever */
 	while (1)
 	{
-		while(SysTick_Elapsed_MicroSeconds(timestamp)<2000000)
-		{
-			GPIOG->ODR &= 0<<13;
-		}
-		timestamp = SysTick_Get_Timestamp();
-		while(SysTick_Elapsed_MicroSeconds(timestamp)<2000000)
-		{
-		GPIOG->ODR |= 1<<13;
-		}
-		timestamp = SysTick_Get_Timestamp();
+		CAN_Process();
 	}
 
 }
@@ -94,6 +85,9 @@ void Micro_Initialisation(void)
 
 	//Enable the FPU (floating point co-processor,access = full access)
 	SCB->CPACR |= FPU_CP10_FULL | FPU_CP11_FULL ;
+
+	//Initialise the CAN bus.
+	CAN_Init();
 }
 
 /***********************************************
