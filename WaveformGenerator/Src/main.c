@@ -1,6 +1,6 @@
 /**************************************************************************************************************
  *                  File Name       :main.c
- *                  Overview        :Micro and System initialisation  as well as external loop.
+ *                  Overview        :Micro and System initialisation  as well as eternal loop.
  *                  Authors         :Wenze Pan
  **************************************************************************************************************
  *                  Copyright @ As Applicable
