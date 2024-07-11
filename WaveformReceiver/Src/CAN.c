@@ -78,8 +78,8 @@ void CAN_Init()
 	// Filter assigned to the FIFO0.
 	CAN1->FFA1R &= ~(CAN_FFA1R_FFA0);
 	// Set Identifier to be 0 (mask mode so any ID will be accepted
-	CAN1->sFilterRegister[0].FR1 = 123;
-	CAN1->sFilterRegister[0].FR2 = 0;
+	CAN1->sFilterRegister[0].FR1 = 123<<21;
+	CAN1->sFilterRegister[0].FR2 = 123<<21;
 	// Deactivate all filters.
 	CAN1->FA1R = 0;
 	// Activate the filter bank 0.
@@ -97,17 +97,17 @@ void CAN_Init()
 	CAN1->MCR &= ~(CAN_MCR_SLEEP);
 	CAN1->FMR &= ~(CAN_FMR_FINIT);
 
-	// Set the identifier to be 123
+	// Set the identifier to be 446
 	CAN1->sTxMailBox[0].TIR = 446 << 21;
 
 	// Set the Data Length to be 8
 	CAN1->sTxMailBox[0].TDTR = 8;
 
 	// Set the DATA1,2,3,4
-	CAN1->sTxMailBox[0].TDLR |= Response[3]<<24 | Response[2]<<16 | Response[1]<<8 | Response[0];
+	CAN1->sTxMailBox[0].TDLR = Response[3]<<24 | Response[2]<<16 | Response[1]<<8 | Response[0];
 
 	// Set the DATA  5,6,7,8
-	CAN1->sTxMailBox[0].TDHR |= Response[7]<<24 | Response[6]<<16 | Response[5]<<8 | Response[4];
+	CAN1->sTxMailBox[0].TDHR = Response[7]<<24 | Response[6]<<16 | Response[5]<<8 | Response[4];
 
 
 }
@@ -127,7 +127,7 @@ void CAN_Response()
 
 /*********************************************
  * @brief CAN_Process
- * Transmit the waveform information every 1 second.
+ * Flash the LED by different waveform type..
  * @param None
  * @retval None
  */
@@ -139,6 +139,7 @@ void CAN_Process()
 		// Update time stamp
 		CAN_TimeStamp = SysTick_Get_Timestamp();
 
+		// Toggle the LED.
 		GPIOG->ODR ^= GPIO_ODR_ODR_13;
 
 	}
@@ -146,21 +147,23 @@ void CAN_Process()
 
 void CAN1_RX0_IRQHandler()
 {
-	 for(int i=0;i<4;i++)
-	 {
-		 F0Data[i] = (CAN1->sFIFOMailBox[0].RDLR>>8*i);
-	 }
+	// Get first 4 data
+	for(int i=0;i<4;i++)
+	{
+	F0Data[i] = (CAN1->sFIFOMailBox[0].RDLR>>8*i);
+	}
 
-	 for(int i=4;i<8;i++)
-	 {
-		 F0Data[i] = (CAN1->sFIFOMailBox[0].RDHR>>8*(i-4));
-	 }
+	// Get next 4 data
+	for(int i=4;i<8;i++)
+	{
+		F0Data[i] = (CAN1->sFIFOMailBox[0].RDHR>>8*(i-4));
+	}
 
-	 // Release the FIFO.
-	 CAN1->RF0R |= CAN_RF0R_RFOM0;
+	// Release the FIFO.
+	CAN1->RF0R |= CAN_RF0R_RFOM0;
 
-	 // Say ThankYou
-	 CAN_Response();
+	// Say ThankYou
+	CAN_Response();
 }
 
 

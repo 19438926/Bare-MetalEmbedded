@@ -55,12 +55,11 @@ int main(void)
 	//Initialise to use external clock , enable relevant gpio and peripheral etc.
 	Micro_Initialisation();
 
-	//static uint64_t timestamp;
-
 	/******************/
 	/* Loop forever */
 	while (1)
 	{
+		// Flash LED by waveform type.
 		CAN_Process();
 	}
 

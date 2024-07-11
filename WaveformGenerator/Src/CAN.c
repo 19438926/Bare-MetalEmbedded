@@ -77,9 +77,9 @@ void CAN_Init()
 	CAN1->FM1R &= ~(CAN_FM1R_FBM0);
 	// Filter assigned to the FIFO0.
 	CAN1->FFA1R &= ~(CAN_FFA1R_FFA0);
-	// Set Identifier to be 0 (mask mode so any ID will be accepted
-	CAN1->sFilterRegister[0].FR1 = 446;
-	CAN1->sFilterRegister[0].FR2 = 0;
+	// Set Identifier to be 446 (mask mode so any ID will be accepted
+	CAN1->sFilterRegister[0].FR1 = 446<<21;
+	CAN1->sFilterRegister[0].FR2 = 446<<21;
 	// Deactivate all filters.
 	CAN1->FA1R = 0;
 	// Activate the filter bank 0.
@@ -151,18 +151,20 @@ void CAN_Process()
 
 void CAN1_RX0_IRQHandler()
 {
-	 for(int i=0;i<4;i++)
-	 {
-		 F0Data[i] = (CAN1->sFIFOMailBox[0].RDLR>>8*i);
-	 }
+	// Get the first 4 data
+	for(int i=0;i<4;i++)
+	{
+		F0Data[i] = (CAN1->sFIFOMailBox[0].RDLR>>8*i);
+	}
 
-	 for(int i=4;i<8;i++)
-	 {
-		 F0Data[i] = (CAN1->sFIFOMailBox[0].RDHR>>8*(i-4));
-	 }
+	// Get the next 4 data
+	for(int i=4;i<8;i++)
+	{
+	  F0Data[i] = (CAN1->sFIFOMailBox[0].RDHR>>8*(i-4));
+	}
 
-	 // Release the FIFO.
-	 CAN1->RF0R |= CAN_RF0R_RFOM0;
+	// Release the FIFO.
+	CAN1->RF0R |= CAN_RF0R_RFOM0;
 }
 
 
