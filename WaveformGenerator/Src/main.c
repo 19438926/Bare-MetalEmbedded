@@ -233,6 +233,7 @@ void Initialise_External_Clock(void)
 	FLASH->ACR |= FLASH_ACR_ICEN | FLASH_ACR_DCEN | FLASH_ACR_PRFTEN
 			| FLASH_ACR_LATENCY_4WS;
 
+
 	//Configure the Prescalers HCLK,PCLK1 AND PCLK2
 	//AHB Prescaler
 	RCC->CFGR |= RCC_CFGR_HPRE_DIV1;
