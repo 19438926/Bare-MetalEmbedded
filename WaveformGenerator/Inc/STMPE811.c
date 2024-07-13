@@ -15,6 +15,7 @@
 /*Required Header Files */
 #include "stm32f429xx.h"
 #include "STMPE811.h"
+#include "GlobalDefs.h"
 
 
 /****************************************************/
@@ -74,10 +75,15 @@
 // ID returned from the device
 uint16_t STMPE811_ID;
 uint8_t Value[2];
+uint8_t dataXYZ[4];
 
 // Touch info
 uint16_t us_TouchPointX, us_TouchPointY;
 uint32_t ul_TouchCount;
+uint8_t data;
+
+// DMA Flag
+uint8_t uc_I2C_DMA_Transfer_Completed = TRUE;
 
 /*********************************************/
 /* Local only function prototype */
@@ -87,6 +93,13 @@ void I2C_Call_Address(uint8_t Address);
 void I2C_Transmit(uint8_t *Data,uint8_t Number);
 void I2C_Receive(uint8_t *Data,uint8_t Number,uint8_t Address);
 void I2C_Stop();
+void I2C_Tx_Via_DMA(uint32_t p_Src,uint32_t len);
+void I2C_Rx_Via_DMA(uint32_t p_Dest , uint32_t len);
+
+uint8_t I2CStartNonBlocking();
+uint8_t I2C_Call_AddressNonBlocking(uint8_t Address);
+uint8_t I2C_TransmitNonBlocking(uint8_t *Data);
+uint8_t I2C_ReceiveNonBlocking(uint8_t *Data,uint8_t Address,uint8_t Number);
 
 // I2C Helpers for touch screen controller
 void I2Cx_WriteData(uint8_t Addr, uint8_t Reg, uint8_t Value);
@@ -94,10 +107,17 @@ uint8_t I2Cx_ReadData(uint8_t Addr, uint8_t Reg);
 void I2Cx_ReadBuffer(uint8_t Addr, uint8_t Reg, uint8_t *pBuffer, uint16_t Length);
 void I2Cx_Error( void );
 
+uint8_t I2Cx_ReadDataNonBlocking(uint8_t Addr, uint8_t Reg);
+uint8_t I2Cx_ReadBufferNonBlocking(uint8_t Addr, uint8_t Reg, uint8_t *pBuffer, uint16_t Length);
+
 // STMPE811 functionality
 void stmpe811_TS_GetXY(uint16_t *X, uint16_t *Y);
 uint8_t stmpe811_TS_DetectTouch(uint8_t DeviceAddr);
 void stmpe811_TS_Start(uint8_t DeviceAddr);
+uint8_t detectTouchNonBlocking(uint8_t Address);
+uint8_t GetXYNonBLocking(uint16_t *X,uint16_t *Y);
+
+
 
 /*********************************************
  * @brief I2C_Init
@@ -128,6 +148,21 @@ void I2C_Init()
 
 	// Enable the I2C
 	I2C3->CR1 |= I2C_CR1_PE;
+}
+
+/*********************************************
+ * @brief I2C_DMA_En
+ * Enable the I2C DMA mode
+ * @param None
+ * @retval None
+ */
+void I2C_DMA_En()
+{
+	// Enable the DMA
+	I2C3->CR2 |= I2C_CR2_DMAEN;
+
+	// Enable the Last transfer mode
+	I2C3->CR2 |= I2C_CR2_LAST;
 }
 
 /*********************************************
@@ -491,6 +526,486 @@ void Touch_Init ()
 }
 
 /*********************************************
+ * @brief I2CStartNonBlocking
+ * Start or Restart I2C communication(performing non-blocking)
+ * @param None
+ * @retval :uint8_t
+ */
+uint8_t I2CStartNonBlocking()
+{
+	static uint8_t state = 0;
+	uint8_t finished = FALSE;
+
+	switch (state)
+	{
+	case 0:
+		// Perform a start non-blocking
+		//Enable the acknowledge
+		I2C3->CR1 |= I2C_CR1_ACK;
+
+		//Start the I2C communication
+		I2C3->CR1 |= I2C_CR1_START;
+		state ++;
+		break;
+
+	case 1:
+		// Started Ok?
+		if ((I2C3->SR1 & I2C_SR1_SB))
+		{
+			finished = TRUE;
+			state = 0;
+		}
+		break;
+	}
+
+	return finished;
+}
+
+/*********************************************
+ * @brief I2C_Call_AddressNonBlocking
+ * Transmit slave address byte (perform  non-blocking)
+ * @param uint8_t Address
+ * @retval uint8_t
+ */
+uint8_t I2C_Call_AddressNonBlocking(uint8_t Address)
+{
+	static uint8_t state = 0;
+	uint8_t finished = FALSE;
+
+	switch (state)
+	{
+	case 0:
+		// Send the address
+		I2C3->DR = Address;
+		state ++;
+		break;
+
+	case 1:
+		// Address Ok?
+		if ((I2C3->SR1 & I2C_SR1_ADDR))
+		{
+			// Read SR1/SR2 register by rule
+			I2C3->SR1; I2C3->SR2;
+			finished = TRUE;
+			state = 0;
+		}
+		break;
+	}
+
+	return finished;
+
+}
+
+/*********************************************
+ * @brief I2C_TransmitNonBlocking
+ * Transmit data to slave(performing non-blocking)
+ * @param uint8_t *Data
+ * @retval uint8_t
+ */
+uint8_t I2C_TransmitNonBlocking(uint8_t *Data)
+{
+	static uint8_t state = 0;
+	uint8_t finished = FALSE;
+
+	switch (state)
+	{
+	case 0:
+		if((I2C3->SR1 & I2C_SR1_TXE))
+		{
+			state++;
+		}
+	case 1:
+		// Transmit data by DMA
+		I2C_Tx_Via_DMA((uint32_t)Data, 1);
+
+		state++;
+		break;
+
+	case 2:
+		if((I2C3->SR1 & I2C_SR1_BTF))
+		{
+			// Re-enable the DMA
+			I2C3->CR2 |= I2C_CR2_DMAEN;
+
+			finished = TRUE;
+			state = 0;
+		}
+		break;
+	}
+	return finished;
+}
+
+/*********************************************
+ * @brief I2C_ReceiveNonBlocking
+ * Receive data from slave for 4 BYTES or 1 BYTE(performing non-Blocking)
+ * @param uint8_t *Data, uint8_t Address,uint8_t Number
+ * @retval uint8_t
+ */
+uint8_t I2C_ReceiveNonBlocking(uint8_t *Data,uint8_t Address,uint8_t Number)
+{
+	static uint8_t state = 0;
+	uint8_t finished = FALSE;
+
+	if(Number == 1)
+	{
+		switch(state)
+		{
+		case 0:
+			// Send the address
+			I2C3->DR = Address;
+			state++;
+			break;
+
+		case 1:
+			if((I2C3->SR1 & I2C_SR1_ADDR))
+			{
+				I2C3->CR1 &= ~(I2C_CR1_ACK); //disable acknowledge bit
+
+				// Read SR1/SR2 register by rule
+				I2C3->SR1; I2C3->SR2;
+
+				I2C_Stop();	//Stop the communication
+
+				state++;
+			}
+			break;
+
+		case 2:
+
+			// Receive data by DMA
+			I2C_Rx_Via_DMA((uint32_t)Data, 1);
+
+			state ++;
+
+			break;
+
+		case 3:
+
+			state =0 ;
+
+			finished = TRUE;
+
+			break;
+
+		}
+	}
+	else
+	{
+		switch(state)
+		{
+		case 0:
+			if(I2C_Call_AddressNonBlocking(Address))
+			{
+				state++;
+			}
+			break;
+
+		case 1:
+
+			//Receive data by DMA
+			I2C_Rx_Via_DMA((uint32_t)Data, (uint32_t)Number);
+
+			state++;
+
+			break;
+
+		case 2:
+			state =0 ;
+
+			finished = TRUE;
+
+			break;
+
+		}
+	}
+	return finished;
+}
+
+/*********************************************
+ * @brief I2Cx_ReadDataNonBlocking
+ * Reads a single register address(performing non-blocking)
+ * @param uint8_t: Device Address
+ * @param uint8_t: Register Address
+ * @retval: Value of register read.
+ */
+uint8_t I2Cx_ReadDataNonBlocking(uint8_t Addr, uint8_t Reg)
+{
+	static uint8_t state = 0;
+	uint8_t finished = FALSE;
+	//uint8_t value;//Store the received data
+	uint8_t AddressForRead =  (Addr |0x01);
+
+	// Read the register
+	switch(state)
+	{
+	case 0 :
+		//Start I2C
+		if(I2CStartNonBlocking())
+		{
+			state++;
+		}
+		break;
+	case 1:
+		//Send device address with write
+		if(I2C_Call_AddressNonBlocking(Addr))
+		{
+			state++;
+		}
+		break;
+	case 2:
+		// Send register address
+		if(I2C_TransmitNonBlocking(&Reg))
+		{
+			state++;
+		}
+		break;
+	case 3 :
+		//Start I2C
+		if(I2CStartNonBlocking())
+		{
+			state++;
+		}
+		break;
+	case 4:
+		//Receive the data
+		if(I2C_ReceiveNonBlocking(&data, AddressForRead,1))
+		{
+			finished = TRUE;
+			state = 0;
+		}
+		break;
+	}
+	return finished;
+}
+
+/*********************************************
+ * @brief I2Cx_ReadBufferNonBlocking
+ * Reads a number of registers from the device(perform non-blocking)
+ * @param uint8_t: Device Address
+ * @param uint8_t: Register Address to read from beginning
+ * @param uint8_t*: Buffer to load data read into
+ * @param uint16_t: Number of registers to read.
+ * @retval: 0 / 1 indicating error(0=Ok)
+ */
+uint8_t I2Cx_ReadBufferNonBlocking(uint8_t Addr, uint8_t Reg, uint8_t *pBuffer, uint16_t Length)
+{
+	static uint8_t state = 0;
+	uint8_t finished = FALSE;
+	uint8_t AddressForRead =  (Addr |0x01);
+
+	// Read the register
+	switch(state)
+	{
+	case 0 :
+		//Start I2C
+		if(I2CStartNonBlocking())
+		{
+			state++;
+		}
+		break;
+	case 1:
+		//Send device address with write
+		if(I2C_Call_AddressNonBlocking(Addr))
+		{
+			state++;
+		}
+		break;
+	case 2:
+		// Send register address
+		if(I2C_TransmitNonBlocking(&Reg))
+		{
+			state++;
+		}
+		break;
+	case 3 :
+		//Start I2C
+		if(I2CStartNonBlocking())
+		{
+			state++;
+		}
+		break;
+	case 4:
+		//Receive the data
+		if(I2C_ReceiveNonBlocking(pBuffer, AddressForRead,Length))
+		{
+			finished = TRUE;
+			state = 0;
+		}
+		break;
+	}
+	return finished;
+}
+
+/*********************************************
+ * @brief I2Cx_WriteData
+ * Write data to TSC register(performing non-blocking)
+ * @param uint8_t Addr : slave address, uint8_t Reg : register address in slave device, uint8_t Value: Register value
+ * @retval uint8_t
+ */
+uint8_t I2Cx_WriteDataNonBlocking(uint8_t Addr, uint8_t Reg, uint8_t Value)
+{
+	static uint8_t state = 0;
+	uint8_t finished = FALSE;
+
+	uint8_t info = Value;//Store the value
+
+	switch (state)
+	{
+	case 0:
+		if (I2CStartNonBlocking())
+		{
+			state ++;
+		}
+		break;
+
+	case 1:
+		//Send device address with write
+		if(I2C_Call_AddressNonBlocking(Addr))
+		{
+			state++;
+		}
+		break;
+	case 2:
+		// Send register address
+		if(I2C_TransmitNonBlocking(&Reg))
+		{
+			state++;
+		}
+		break;
+	case 3 :
+		//Start I2C
+		if(I2C_TransmitNonBlocking(&info))
+		{
+			state++;
+		}
+		break;
+	case 4:
+		//Receive the data
+		I2C_Stop();
+		finished = TRUE;
+		state = 0;
+		break;
+
+	}
+
+	return finished;
+
+}
+
+/*********************************************
+ * @brief stmpe811_TS_DetectTouch
+ * Return if there is touch detected or not(performing non-blocking)
+ * @param uint8_t DeviceAddr: Device address on communication Bus.
+ * @retval: Touch detected state(0/1 = TouchDetected).
+ */
+uint8_t detectTouchNonBlocking(uint8_t Address)
+{
+
+	static uint8_t state = 0;
+	uint8_t uc_Touched = 0;
+
+	switch (state)
+	{
+	case 0:
+		// Read the touch status register and check for the status of the Z bit.
+		if(I2Cx_ReadDataNonBlocking(Address, STMPE811_REG_TSC_CTRL))
+		{
+			// if Z bit set
+			if(data == 129)
+			{
+				state=1;
+				data=0;
+			}
+			// no bit set so reset the FIFO
+			else
+			{
+				state = 2;
+			}
+		}
+		break;
+	case 1:
+		// Check the FIFO size
+		if(I2Cx_ReadDataNonBlocking(Address, STMPE811_REG_FIFO_SIZE))
+		{
+			if(data>0)
+			{
+				// Touch detected
+				uc_Touched = 1;
+
+			}
+			state = 0;
+
+		}
+		break;
+	case 2:
+		// No touch detected
+		// Reset FIFO
+		if(I2Cx_WriteDataNonBlocking(STMPE811_DEVICE_ADDRESS, STMPE811_REG_FIFO_STA, 0x01))
+		{
+			state++;
+		}
+		break;
+
+	case 3:
+		// Enable FIFO again
+		if(I2Cx_WriteDataNonBlocking(STMPE811_DEVICE_ADDRESS, STMPE811_REG_FIFO_STA, 0x00))
+		{
+			state=0;
+		}
+		break;
+	}
+
+	return uc_Touched;
+}
+
+/*********************************************
+ * @brief stmpe811_TS_GetXY
+ * Get the XY touch coordinates(performing non-blocking)
+ * @param uint16_t*: Pointer to X
+ * @param uint16_t*: Pointer to Y
+ * @retval: uint8_t
+ */
+uint8_t GetXYNonBLocking(uint16_t *X,uint16_t *Y)
+{
+	static uint8_t state = 0;
+	uint8_t finished = FALSE;
+
+	uint32_t uldataXYZ;
+	switch (state)
+	{
+	case 0:
+		// rRead the required registers
+		if(I2Cx_ReadBufferNonBlocking(STMPE811_DEVICE_ADDRESS,STMPE811_REG_TSC_DATA_NON_INC,dataXYZ,sizeof(dataXYZ)))
+		{
+			state++;
+
+			// Calculate positions values
+			uldataXYZ = (dataXYZ[0]<<24)|(dataXYZ[1]<<16)|(dataXYZ[2]<<8)|(dataXYZ[3]<<0);
+			*X = (uldataXYZ >> 20) & 0x00000FFF;
+			*Y = (uldataXYZ >> 8)  & 0x00000FFF;
+		}
+		break;
+	case 1:
+		// Reset FIFO
+		if(I2Cx_WriteDataNonBlocking(STMPE811_DEVICE_ADDRESS, STMPE811_REG_FIFO_STA, 0x01))
+		{
+			state++;
+		}
+		break;
+	case 2:
+		// Enable the FIFO
+		if(I2Cx_WriteDataNonBlocking(STMPE811_DEVICE_ADDRESS, STMPE811_REG_FIFO_STA, 0x00))
+		{
+			state=0;
+			finished = TRUE;
+		}
+		break;
+	}
+
+	return finished;
+}
+
+/*********************************************
  * @brief Touch_Process
  * Run the touch interface
  * @param None
@@ -498,12 +1013,169 @@ void Touch_Init ()
  */
 void Touch_Process(void)
 {
-	// Has touch been indicated?
-	uint8_t uc_TouchDetected = stmpe811_TS_DetectTouch(STMPE811_DEVICE_ADDRESS);
-	if(uc_TouchDetected)
+	static int state = 0;
+
+	if(uc_I2C_DMA_Transfer_Completed)
 	{
-		// Increment touch count and fetch X / Y Values for the touch point.
-		ul_TouchCount++;
-		stmpe811_TS_GetXY(&us_TouchPointX, &us_TouchPointY);
+		switch (state)
+		{
+		case 0: // Detect Touch
+			if (detectTouchNonBlocking(STMPE811_DEVICE_ADDRESS))
+			{
+				state ++;
+			}
+			break;
+
+		case 1: // Get XY
+			if (GetXYNonBLocking(&us_TouchPointX, &us_TouchPointY))
+			{
+				ul_TouchCount++;
+				state = 0;
+			}
+		}
 	}
 }
+
+
+/*********************************************
+ * @brief I2C_Tx_Via_DMA
+ * Configures and initiates Tx of data via DMA controller.
+ * @param Src/len : Source address / length of data transfer
+ * @retval None
+ */
+void I2C_Tx_Via_DMA(uint32_t p_Src,uint32_t len)
+{
+	// Disable DMA1 Stream 2 while we configure it.
+	DMA1_Stream4->CR &= ~DMA_SxCR_EN;
+
+	// Wait until DMA1 Stream2 is disabled.
+	while(DMA1_Stream4->CR & DMA_SxCR_EN);
+
+	// Clear all interrupt flags to ensure no miss-firing when enabling.
+	// Stream transfer complete interrupt flag.
+	DMA1->HIFCR |= DMA_HIFCR_CTCIF4;
+	// Stream half transfer complete interrupt flag.
+	DMA1->HIFCR |= DMA_HIFCR_CHTIF4;
+	// Stream transfer error interrupt flag
+	DMA1->HIFCR |= DMA_HIFCR_CTEIF4;
+	// Direct mode error interrupt flag
+	DMA1->HIFCR |=DMA_HIFCR_CDMEIF4;
+	// FIFO Error interrupt flag.
+	DMA1->HIFCR |= DMA_HIFCR_CFEIF4;
+
+	// Set peripheral address - where to write the data received.
+	DMA1_Stream4->PAR = (uint32_t)&I2C3->DR;
+
+	//Set destination address (for data coming from USART1 data register.)
+	DMA1_Stream4->M0AR = p_Src;
+
+	// Set length - maximum length.
+	DMA1_Stream4->NDTR = len;
+
+	// Select stream/channel (Stream 4, channel 3 = I2C3 Tx).
+	DMA1_Stream4->CR = DMA_SxCR_CHSEL_0 | DMA_SxCR_CHSEL_1 ;
+
+	// Configure for memory increment
+	DMA1_Stream4->CR |= DMA_SxCR_MINC;
+
+	// Configure transfer direction (set bit 0 ).
+	DMA1_Stream4->CR |= DMA_SxCR_DIR_0 ;
+
+	// Enable transfer complete interrupt - to trap overrun.
+	DMA1_Stream4->CR |= DMA_SxCR_TCIE;
+
+	// Enable direct mode and disable FIFO
+	DMA1_Stream4->FCR = 0;
+
+	// Set the flag to be FALSE
+	uc_I2C_DMA_Transfer_Completed = FALSE;
+
+	// Enable the DMA interrupt in NVIC
+	NVIC_EnableIRQ(DMA1_Stream4_IRQn);
+
+	// Enable DMA1 Stream
+	DMA1_Stream4->CR |= DMA_SxCR_EN;
+}
+
+/*********************************************
+ * @brief I2C_Rx_Via_DMA
+ * Configures and initiates Rx of data via DMA controller.
+ * @param Dest/len : Source address / length of data transfer
+ * @retval None
+ */
+void I2C_Rx_Via_DMA(uint32_t p_Dest , uint32_t len)
+{
+	// Disable DMA2 Stream 2 while we configure it.
+	DMA1_Stream2->CR &= ~DMA_SxCR_EN;
+
+	// Wait until DMA2 Stream2 is disabled.
+	while(DMA1_Stream2->CR & DMA_SxCR_EN);
+
+	// Clear all interrupt flags to ensure no miss-firing when enabling.
+	// Stream transfer complete interrupt flag.
+	DMA1->LIFCR |= DMA_LIFCR_CTCIF2;
+	// Stream half transfer complete interrupt flag.
+	DMA1->LIFCR |= DMA_LIFCR_CHTIF2;
+	// Stream transfer error interrupt flag
+	DMA1->LIFCR |= DMA_LIFCR_CTEIF2;
+	// Direct mode error interrupt flag
+	DMA1->LIFCR |=DMA_LIFCR_CDMEIF2;
+	// FIFO Error interrupt flag.
+	DMA1->LIFCR |= DMA_LIFCR_CFEIF2;
+
+	// Set peripheral address - where to write the data received.
+	DMA1_Stream2->PAR = (uint32_t)&I2C3->DR;
+
+	//Set destination address (for data coming from I2C3 data register.)
+	DMA1_Stream2->M0AR = p_Dest;
+
+	// Set length - maximum length.
+	DMA1_Stream2->NDTR = len;
+
+	// Select stream/channel (Stream 2, channel 3 = I2C3 Rx).
+	DMA1_Stream2->CR = DMA_SxCR_CHSEL_1 |DMA_SxCR_CHSEL_0;
+
+	// Configure for memory increment
+	DMA1_Stream2->CR |= DMA_SxCR_MINC;
+
+	// Configure transfer direction (clear bit 0 and 1).
+	DMA1_Stream2->CR &= ~(DMA_SxCR_DIR_0 | DMA_SxCR_DIR_1);
+
+	// Enable transfer complete interrupt - to trap overrun.
+	DMA1_Stream2->CR |= DMA_SxCR_TCIE;
+
+	// Enable direct mode and disable FIFO
+	DMA1_Stream2->FCR = 0;
+
+	// Enable DMA2 Stream
+	DMA1_Stream2->CR |= DMA_SxCR_EN;
+
+	// Set the flag to be FALSE
+	uc_I2C_DMA_Transfer_Completed = FALSE;
+
+	// Enable the DMA interrupt in NVIC
+	NVIC_EnableIRQ(DMA1_Stream2_IRQn);
+
+}
+
+void DMA1_Stream2_IRQHandler(void)
+{
+	// Simply ack the interrupt
+	DMA1->LIFCR |= DMA_LIFCR_CTCIF2;
+
+	//Set the under DMA flag TRUE for setting to be normal continuous reading
+	uc_I2C_DMA_Transfer_Completed = TRUE;
+}
+
+void DMA1_Stream4_IRQHandler(void)
+{
+	// Simply ack the interrupt
+	DMA1->HIFCR |= DMA_HIFCR_CTCIF4;
+
+	//Set the under DMA flag TRUE for setting to be normal continuous reading
+	uc_I2C_DMA_Transfer_Completed = TRUE;
+
+	// Disable the DMA
+	I2C3->CR2 &=  ~I2C_CR2_DMAEN;
+}
+
