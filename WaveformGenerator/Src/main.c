@@ -1,6 +1,6 @@
 /**************************************************************************************************************
  *                  File Name       :main.c
- *                  Overview        :Micro and System initialisation  as well as external loop.
+ *                  Overview        :Micro and System initialisation  as well as eternal loop.
  *                  Authors         :Wenze Pan
  **************************************************************************************************************
  *                  Copyright @ As Applicable
@@ -24,6 +24,7 @@
 #include"CommandHandler.h"
 #include"DigitalInput.h"
 #include "STMPE811.h"
+#include "CAN.h"
 // hello
 
 /****************************************************/
@@ -90,8 +91,13 @@ int main(void)
 	// Initialise the TouchScreen configuration
 	Touch_Init();
 
+
+	// Initialise the CAN bus
+	CAN_Init();
+
 	// Enable I2C DMA mode
 	I2C_DMA_En();
+
 
 	//configure our waveform descriptor structure.
 	Waveform.e_WaveType = eWT_Triangular;
@@ -144,6 +150,9 @@ int main(void)
 		time_measure1 = SysTick_Elapsed_MicroSeconds(time1);
 
 
+
+		// Transmit waveform data to other device
+		CAN_Process();
 
 
 
@@ -271,7 +280,7 @@ void Initialise_External_Clock(void)
  */
 void Initialise_GPIO(void)
 {
-	//Enable clock access to GPIOG and GPIOA and GPIOC
+	//Enable clock access to GPIOG and GPIOA and GPIOC and GPIOF
 	RCC->AHB1ENR |= RCC_AHB1ENR_GPIOGEN | RCC_AHB1ENR_GPIOAEN | RCC_AHB1ENR_GPIOCEN |RCC_AHB1ENR_GPIOFEN;
 
 	// Enable clock access for DMA2 and DMA1
@@ -321,6 +330,12 @@ void Initialise_GPIO(void)
 //	GPIOC->OSPEEDR |= GPIO_OSPEEDER_OSPEEDR9_0 | GPIO_OSPEEDER_OSPEEDR9_1;
 //	GPIOA->PUPDR |= GPIO_PUPDR_PUPDR8_0;
 //	GPIOC->PUPDR |= GPIO_PUPDR_PUPDR9_0;
+
+	//CAN : Configure the pin we need(PA11(CAN1_RX)/PA12(CAN1_TX)) for relevant alternate function.
+	GPIOA->MODER |= GPIO_MODER_MODE11_1;
+	GPIOA->MODER |= GPIO_MODER_MODE12_1;
+	GPIOA->AFR[1] |= GPIO_AFRH_AFRH3_0 | GPIO_AFRH_AFRH3_3;
+	GPIOA->AFR[1] |= GPIO_AFRH_AFRH4_0 | GPIO_AFRH_AFRH4_3;
 }
 
 
