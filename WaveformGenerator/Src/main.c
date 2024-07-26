@@ -121,7 +121,7 @@ int main(void)
 
 
 		// Handle the command received from USART
-		CommandHandler_Run();
+		//CommandHandler_Run();
 
 		// Process the digital input
 		DI_Process();
@@ -152,7 +152,7 @@ int main(void)
 
 
 		// Transmit waveform data to other device
-		CAN_Process();
+		//CAN_Process();
 
 
 
