@@ -25,6 +25,7 @@
 #include"DigitalInput.h"
 #include "STMPE811.h"
 #include "CAN.h"
+#include "ModbusSlave.h"
 // hello
 
 /****************************************************/
@@ -154,7 +155,8 @@ int main(void)
 		// Transmit waveform data to other device
 		//CAN_Process();
 
-
+		// Process Modbus Command
+		ModbusSlave_Run();
 
 //		uint64_t count = 0;0
 //		do {
