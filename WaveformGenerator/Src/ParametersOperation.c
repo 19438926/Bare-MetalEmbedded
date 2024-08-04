@@ -19,6 +19,7 @@
 
 /****************************************************/
 /*Local only definitions */
+#define NUM_HOLDING_REGISTERS sizeof (HOLDING_REGISTER) / sizeof(uint16_t *)
 
 /***************************/
 /* Enumerations */
