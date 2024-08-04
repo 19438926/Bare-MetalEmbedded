@@ -12,6 +12,7 @@
 
 void ValUpdate();
 uint16_t GetVal(uint16_t number);
+void SetVal(uint16_t number,uint16_t data);
 
 
 

@@ -90,3 +90,19 @@ uint16_t GetVal(uint16_t number)
 
 	return *Val;
 }
+
+/*********************************************
+ * @brief SetVal
+ * Set value for the waveform by modbus command
+ * @param  uint16_t number
+ * @param  uint16_t data
+ * @retval none
+ */
+void SetVal(uint16_t number,uint16_t data)
+{
+	// Set the data to the local waveform
+	*HOLDING_REGISTER[number-1] = data;
+
+	// Set the data to the to the real current waveform
+	WaveformGenerator_Set_Waveform(WaveformShadow);
+}

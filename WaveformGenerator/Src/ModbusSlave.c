@@ -44,6 +44,8 @@ uint8_t CheckCRC( char *Array, uint16_t Length);
 uint16_t CalcChecksum(char *Array, uint16_t Size);
 uint16_t ActionRxMsg (char *RXmsg, uint16_t RXmsgByteCount, char *replyMsg, uint16_t replyMAX);
 int ActionReadRegisterRequest( char *RXmsg, uint16_t RXmsgByteCount, char *replyMsg, uint16_t replyMAX);
+int ActionWriteRegisterRequest( char *RXmsg, uint16_t RXmsgByteCount, char *replyMsg, uint16_t replyMAX);
+int ActionWriteMultipleRegisterRequest( char *RXmsg, uint16_t RXmsgByteCount, char *replyMsg, uint16_t replyMAX);
 void AddCRC ( char *Array, uint16_t Length);
 uint32_t GenerateErrorResponse ( char *RXmsg,  uint16_t RXmsgByteCount,  char *replyMsg, uint16_t replyMAX, uint16_t errorCode);
 
@@ -214,12 +216,12 @@ uint16_t ActionRxMsg ( char *RXmsg, uint16_t RXmsgByteCount, char *replyMsg, uin
 
 	////////////////////////
 	case MODBUS_WRITE_REGISTER_FC:
-		//replyByteCount = ActionWriteRegisterRequest (RXmsg, RXmsgByteCount, replyMsg, replyMAX);
+		replyByteCount = ActionWriteRegisterRequest (RXmsg, RXmsgByteCount, replyMsg, replyMAX);
 	break;
 
 	////////////////////////
 	case MODBUS_WRITE_MULTIPLE_REGISTERS_FC:
-		//replyByteCount = ActionWriteMultipleRegisterRequest (RXmsg, RXmsgByteCount, replyMsg, replyMAX);
+		replyByteCount = ActionWriteMultipleRegisterRequest (RXmsg, RXmsgByteCount, replyMsg, replyMAX);
 	break;
 
 	////////////////////////
@@ -231,7 +233,7 @@ uint16_t ActionRxMsg ( char *RXmsg, uint16_t RXmsgByteCount, char *replyMsg, uin
 	default:
 		// Unknown command
 		// Generate "ILLEGAL_FUNCTION_CODE" response
-		//replyByteCount = GenerateErrorResponse (RXmsg, RXmsgByteCount, replyMsg, replyMAX, ILLEGAL_FUNCTION_CODE);
+		replyByteCount = GenerateErrorResponse (RXmsg, RXmsgByteCount, replyMsg, replyMAX, ILLEGAL_FUNCTION_CODE);
 	break;
 	}
 
@@ -271,6 +273,7 @@ int ActionReadRegisterRequest( char *RXmsg, uint16_t RXmsgByteCount, char *reply
 		return GenerateErrorResponse (RXmsg, RXmsgByteCount, replyMsg, replyMAX, ILLEGAL_DATA_ADDRESS_CODE);
 	}
 
+	// Update the local waveform.
 	ValUpdate();
 
 	// Collect the data
@@ -294,6 +297,145 @@ int ActionReadRegisterRequest( char *RXmsg, uint16_t RXmsgByteCount, char *reply
 
 	// And set reply byte count
 	replyByteCount = 5 + (2*wordsRequested);
+
+	return replyByteCount;
+}
+
+/*********************************************
+ * @brief ActionWriteRegisterRequest
+ * Decode and respond to a Holding Register(s) command Returns number of bytes in replyMsg to send out
+ * @param char *RXmsg - Pointer to received data buffer
+ * 		  uint16_t RXmsgByteCount- number of bytes in message array
+ * 		  char *replyMsg - Pointer to response buffer
+ * 		  uint16_t replyMAX - Maximum size that can be used in response buffer.
+ * @retval int (+ve = number of bytes to transmit, -ve = exception)
+ */
+int ActionWriteRegisterRequest( char *RXmsg, uint16_t RXmsgByteCount, char *replyMsg, uint16_t replyMAX)
+{
+	uint32_t replyByteCount = 0;
+	uint16_t startingAddress;
+	uint16_t Value;
+
+	// What's the address of the first register (word) we need?
+	startingAddress = (((int)RXmsg[2] << 8) | RXmsg[3]);
+
+	// To avoid change float variable,function was provided to modify first 3 registers
+	// Make sure the data address is within the range.
+	if(startingAddress>(0x0003))
+	{
+		return GenerateErrorResponse (RXmsg, RXmsgByteCount, replyMsg, replyMAX, ILLEGAL_DATA_ADDRESS_CODE);
+	}
+
+	// Get the register value
+	Value = (uint16_t) RXmsg[4] << 8 | RXmsg[5];
+
+	// The waveform type can only reach 5, so
+	// if it is greater, the error would be threw.
+	if(startingAddress == 0x0001)
+	{
+		if(Value>5)
+		{
+			return GenerateErrorResponse (RXmsg, RXmsgByteCount, replyMsg, replyMAX, ILLEGAL_DATA_VALUE_CODE);
+		}
+	}
+
+	// Update the data
+	ValUpdate();
+
+	// Execute the write command
+	SetVal(startingAddress, Value);
+
+	// Finally, sort the rest of the message (header)
+	// Copy ID across (rather than writing our ID we copy is across to maintain validity if ALWAYS_RESPOND address used
+	replyMsg[0] = RXmsg[0];
+	// Copy function code across
+	replyMsg[1] = RXmsg[1];
+	// Copy address
+	replyMsg[2] = RXmsg[2];
+	replyMsg[3] = RXmsg[3];
+	// Copy Value
+	replyMsg[4] = RXmsg[4];
+	replyMsg[5] = RXmsg[5];
+
+	// Add checksum
+	AddCRC(replyMsg, 6);
+
+	// And set reply byte count
+	replyByteCount = 8;
+
+	return replyByteCount;
+}
+
+/*********************************************
+ * @brief ActionReadMultipleRegisterRequest
+ * Decode and respond to a WriteMultipleRegisters command Returns number of bytes in replyMsg to send out
+ * @param char *RXmsg - Pointer to received data buffer
+ * 		  uint16_t RXmsgByteCount- number of bytes in message array
+ * 		  char *replyMsg - Pointer to response buffer
+ * 		  uint16_t replyMAX - Maximum size that can be used in response buffer.
+ * @retval int (+ve = number of bytes to transmit, -ve = exception)
+ */
+int ActionWriteMultipleRegisterRequest( char *RXmsg, uint16_t RXmsgByteCount, char *replyMsg, uint16_t replyMAX)
+{
+	uint32_t replyByteCount = 0;
+	uint16_t startingAddress;
+	uint32_t wordsRequested;
+	uint16_t wordsLeftToWrite;
+
+	// What's the address of the first register (word) we need?
+	startingAddress = (((int)RXmsg[2] << 8) | RXmsg[3]);
+
+	// Force the data address is within the range.
+	// Due to the first 4 registers can be modified by single write and simplifying operation
+	// And it can only start writing multiple register from address 4 or 6
+	if((startingAddress == 4) | (startingAddress == 6) )
+	{
+		// Make sure the word count is within limits
+		wordsRequested = ((int)RXmsg[4] << 8) | (int)RXmsg[5];
+
+		if(((wordsRequested == 2) | (wordsRequested ==4))&(startingAddress + wordsRequested <= 8))
+		{
+			wordsLeftToWrite = wordsRequested;
+
+			// Update the local waveform.
+			ValUpdate();
+
+			// Collect the data
+			for(int i=0;i<wordsLeftToWrite;i++)
+			{
+				// Set relevant value.
+				SetVal(startingAddress+i, (uint16_t)(RXmsg[7+2*i]<<8|RXmsg[7+2*i+1]));
+			}
+
+		}
+		else
+		{
+			return GenerateErrorResponse (RXmsg, RXmsgByteCount, replyMsg, replyMAX, ILLEGAL_DATA_ADDRESS_CODE);
+		}
+	}
+	else
+	{
+		return GenerateErrorResponse (RXmsg, RXmsgByteCount, replyMsg, replyMAX, ILLEGAL_DATA_ADDRESS_CODE);
+	}
+
+	// Finally, sort the rest of the message (header)
+	// Copy ID across (rather than writing our ID we copy is across to maintain validity if ALWAYS_RESPOND address used
+	replyMsg[0] = RXmsg[0];
+	// Copy function code across
+	replyMsg[1] = RXmsg[1];
+	// Copy address
+	replyMsg[2] = RXmsg[2];
+	replyMsg[3] = RXmsg[3];
+	// Copy Quantity
+	replyMsg[4] = RXmsg[4];
+	replyMsg[5] = RXmsg[5];
+
+	// Add checksum
+	AddCRC(replyMsg, 6);
+
+	// And set reply byte count
+	replyByteCount = 8;
+
 
 	return replyByteCount;
 }
