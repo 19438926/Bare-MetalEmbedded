@@ -48,7 +48,7 @@ typedef struct
 
 /*********************************************/
 /* Local only variable declaration */
-_WAVEFORM_DESCRIPTOR  CurrentWaveform;
+ _WAVEFORM_DESCRIPTOR  CurrentWaveform;
 _CUSTOM_WAVEFORM_DATA CustomWaveform;
 
 uint16_t us_DAC_Output_Values[MAX_CUSTOM_DATA_LENGTH];
